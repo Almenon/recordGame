@@ -1,0 +1,23 @@
+{
+  "name": "phaser-game",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node --inspect ./bin/www",
+    "lint": "eslint public/js/*.js --ignore-pattern public/js/*.min.js || exit 0"
+  },
+  "description": "phaser game",
+  "dependencies": {
+    "express": "~4.14.1",
+    "body-parser": "~1.16.1",
+    "cookie-parser": "~1.4.3",
+    "morgan": "~1.8.1",
+    "serve-favicon": "~2.4.1",
+    "debug": "~2.6.1",
+    "jade": "~1.6.0",
+    "jquery": "^3.1.1",
+    "jquery-ui": "^1.12.1",
+    "socket.io": "~1.7.3",
+    "phaser-ce": "~2.7.3"
+  }
+}

@@ -1,0 +1,58 @@
+/* stylesheet for game test*/
+
+div {
+  height: 510px;
+  width: 974px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  display:block;
+  border: 2px solid black;
+  
+}
+
+#outer {
+    background-color:#a1dbff;
+    margin:0 auto;
+    height:1142px;
+    border: 5px solid black;
+}
+
+#inner {
+    background-color:white;
+    margin-left:5px;
+    margin-right:5px;
+    margin-top:5px;
+    width:960px;
+  
+}
+p{
+  font-family:georgia; 
+  font-size: 15px;
+  text-align:left; 
+  margin: 5 auto;
+  margin-left: 50px;
+  margin-right: 40px;
+  line-height: 1.5em;  
+}
+
+h2,h3{
+  margin: 5 auto;
+  margin-left: 40px;
+}
+
+p.special{
+  font-family:georgia;
+  font-size: 16px;
+  text-align:center;
+  margin: 5 auto;
+}
+
+img{
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+canvas{
+	position: absolute; 
+}

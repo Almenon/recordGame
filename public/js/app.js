@@ -33,16 +33,22 @@ function create() {
     game.physics.arcade.enable(stuff, Phaser.Physics.ARCADE);
 
     sprite = game.add.sprite(0, 0, 'player');
-    sprite.cameraOffset.setTo(gameHeight/2, gameWidth/2);
     game.physics.enable(sprite, Phaser.Physics.ARCADE);
+    sprite.enableBody = true;
     sprite.body.allowRotation = false;
     sprite.body.collideWorldBounds = true;
+
+    sprite.cameraOffset.setTo(gameHeight/2, gameWidth/2);
     game.camera.follow(sprite);
 
-    player2 = game.add.sprite(50, 50, 'player');
-    game.physics.enable(sprite, Phaser.Physics.ARCADE);
-    sprite.body.allowRotation = false;
-    sprite.body.collideWorldBounds = true;
+    player2 = game.add.sprite(0, 0, 'player');
+    game.physics.enable(player2, Phaser.Physics.ARCADE);
+    player2.enableBody = true;
+    player2.body.allowRotation = false;
+    player2.body.collideWorldBounds = true;
+    
+    //player2.body.onCollide = new Phaser.Signal();
+    //player2.body.onCollide.add(functionName, this)
 
     socket.on('world', function(world){
         for (var i = 0; i < 200; i++)
@@ -50,8 +56,7 @@ function create() {
             wall = stuff.create(world[i].x, world[i].y, 'bug');
             wall.enableBody = true;
             wall.body.immovable = true;
-            wall.body.bounce.y = 50;
-            wall.body.bounce.x = 50;
+            wall.body.bounce.set(.5); //50% rebound velocity
         }
         console.log('world built');
     })
@@ -64,6 +69,7 @@ function create() {
 function update() {
     sprite.rotation = game.physics.arcade.moveToPointer(sprite, 60, game.input.activePointer, 500);
     game.physics.arcade.collide(sprite,stuff);
+    game.physics.arcade.collide(sprite,player2);
     socket.emit('message',[sprite.x, sprite.y])
 }
 

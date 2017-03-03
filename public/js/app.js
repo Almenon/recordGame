@@ -61,8 +61,7 @@ function create() {
         console.log('world built');
     })
 
-    socket.emit('joinGame','ready player one')
-    socket.emit('message','test message');
+    socket.emit('joinGame','ready player one');
 
 }
 
@@ -70,6 +69,7 @@ function update() {
     sprite.rotation = game.physics.arcade.moveToPointer(sprite, 60, game.input.activePointer, 500);
     game.physics.arcade.collide(sprite,stuff);
     game.physics.arcade.collide(sprite,player2);
+    game.physics.arcade.collide(player2,stuff);
     socket.emit('message',[sprite.x, sprite.y])
 }
 

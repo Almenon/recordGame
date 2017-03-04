@@ -38,6 +38,10 @@ module.exports = function (io) {
             socket.broadcast.to(socket.room).emit('message', message);
         });
 
+        socket.on('pingCheck', function(time){
+            socket.emit('pingResponse', time);
+        });
+
     });
 
     return router;

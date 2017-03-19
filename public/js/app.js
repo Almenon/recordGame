@@ -1,90 +1,91 @@
 
-
-var gameHeight = 800;
-var gameWidth = 600;
-var game = new Phaser.Game(gameHeight, gameWidth, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render : render });
-var cursors;
-var logo1;
-var logo2;
-var sprite;
-var player2;
-var stuff;
+var game = new Phaser.Game(800, 700, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render: render });
 
 function preload() {
-
-    game.stage.backgroundColor = '#007236';
-
     game.load.image('bug', 'bug.png');
-    //game.load.image('sonic', 'sonic_havok_sanity.png');
-    game.load.image('player', 'player.png');
-
+    game.load.image('arrow', 'arrow.png');
+    game.load.image('record', 'record.png');
 }
+
+var sprite;
 
 function create() {
 
-    //  Modify the world and camera bounds
-    game.world.setBounds(-1000, -1000, 2000, 2000);
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.time.advancedTiming = true
 
-    stuff = game.add.group();
-    stuff.enableBody = true;
-
-    game.physics.arcade.enable(stuff, Phaser.Physics.ARCADE);
-
-    sprite = game.add.sprite(0, 0, 'player');
-    game.physics.enable(sprite, Phaser.Physics.ARCADE);
-    sprite.enableBody = true;
-    sprite.body.allowRotation = false;
-    sprite.body.collideWorldBounds = true;
-
-    sprite.cameraOffset.setTo(gameHeight/2, gameWidth/2);
-    game.camera.follow(sprite);
-
-    player2 = game.add.sprite(0, 0, 'player');
-    game.physics.enable(player2, Phaser.Physics.ARCADE);
-    player2.enableBody = true;
-    player2.body.allowRotation = false;
-    player2.body.collideWorldBounds = true;
     
-    //player2.body.onCollide = new Phaser.Signal();
-    //player2.body.onCollide.add(functionName, this)
 
-    socket.on('world', function(world){
-        for (var i = 0; i < 200; i++)
-        {
-            wall = stuff.create(world[i].x, world[i].y, 'bug');
-            wall.enableBody = true;
-            wall.body.immovable = true;
-            wall.body.bounce.set(.5); //50% rebound velocity
-        }
-        console.log('world built');
-    })
+    game.stage.backgroundColor = '#0072bc';
 
-    socket.emit('joinGame','ready player one');
+    sprite = game.add.sprite(400, 300, 'arrow');
+    sprite.anchor.setTo(0,.5);
+    sprite.scale.setTo(.3);
+    sprite.enableBody = false;
 
+    len = 350;
+    rot = .25*Math.PI;
+    y = Math.sin(rot)*len;
+    x = Math.cos(rot)*len;
+    enemy = game.add.sprite(400+x,300+y, 'bug');
+    enemy.enableBody = true;
+
+    game.physics.enable(enemy, Phaser.Physics.ARCADE);
+    game.physics.enable(sprite, Phaser.Physics.ARCADE);
+
+    enemy.body.velocity.setTo(-x/10,-y/10);
+    //  We'll set a lower max angular velocity here to keep it from going totally nuts
+    sprite.body.maxAngular = 400;
+    sprite.body.maxVelocity = 400;
+    //  Apply a drag otherwise the sprite will just spin and never slow down
+    sprite.body.angularDrag = 900;
+
+    record = game.add.sprite(395,290, 'record');
+    record.anchor.setTo(.5);
+    game.physics.enable(record, Phaser.Physics.ARCADE);
+    record.body.angularVelocity = 100;
+    
 }
 
 function update() {
-    sprite.rotation = game.physics.arcade.moveToPointer(sprite, 60, game.input.activePointer, 500);
-    game.physics.arcade.collide(sprite,stuff);
-    game.physics.arcade.collide(sprite,player2);
-    game.physics.arcade.collide(player2,stuff);
-    socket.emit('message',[sprite.x, sprite.y])
+    //if(Phaser.Math.distance(enemy.x,enemy.y,400,300) < 250) console.log('hi');
+    if(Phaser.Math.distance(enemy.x,enemy.y,400,300) < 250
+        && Phaser.Math.distance(enemy.x,enemy.y,400,300) > 200 && sprite.rotation > rot-.05 && sprite.rotation < rot+.05){ //pointing down
+        game.stage.backgroundColor = '#FFA07A';
+    } 
+    //  Reset the acceleration
+    sprite.body.angularAcceleration = 0;
+
+    //  Apply acceleration if the left/right arrow keys are held down
+    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
+    {
+        //sprite.body.angularAcceleration -= 200;
+        sprite.body.angularVelocity -= 50;
+        //sprite.rotation += .01;
+    }
+    else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
+    {
+        //sprite.body.angularAcceleration += 200;
+        sprite.body.angularVelocity += 50;
+        //sprite.rotation -= .01;
+    }
+
 }
 
 function render() {
-    game.debug.text(game.time.fps, 2, 14, "#00ff00");
-    game.debug.cameraInfo(game.camera, 32, 32);
+    //game.debug.text(game.time.fps, 2, 14, "#00ff00");
+    //game.debug.cameraInfo(game.camera, 32, 32);
+    //game.debug.bodyInfo(sprite, 32, 32);
+    //game.debug.body(sprite);
+    //game.debug.spriteInfo(sprite, 32, 32);
+    //game.debug.text('angularVelocity: ' + sprite.body.angularVelocity, 32, 200);
+    //game.debug.text('angularAcceleration: ' + sprite.body.angularAcceleration, 32, 232);
+    //game.debug.text('angularDrag: ' + sprite.body.angularDrag, 32, 264);
+    //game.debug.text('deltaZ: ' + sprite.body.deltaZ(), 32, 296);
 
 }
 
-
-
-////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////// Game STUFF //////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////
-
+/*
 
 var socket = io();
 
@@ -125,5 +126,4 @@ socket.on('loss', function(notUsed){
 	alert('You lost! Better luck next time');
 	location.reload();
 });
-
-
+*/

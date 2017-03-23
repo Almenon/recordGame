@@ -77,9 +77,14 @@ function create() {
 
 function update() {
 
+    var aEnemy = enemies.children[0];
+    if(aEnemy != undefined && Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < 210){
+        enemies.removeChildren(); //or enemies.forEachAlive(x=>x.kill()).  maybe better for perfeormance?
+    }
+
     //sprite.rotation flips to - and decreases when up top.  why? idk....
     var spriteRad = sprite.rotation < 0 ? 2*Math.PI+sprite.rotation : sprite.rotation;
-    console.log(spriteRad);
+    //console.log(spriteRad);
 
     enemies.forEach(function(enemy){
 
@@ -88,7 +93,7 @@ function update() {
         var radians = numRotations*2*Math.PI;
         radians = enemy.rad - radians; //get rid of any excess rotations
         
-        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < 280 && Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) > 200 
+        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < 280
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
             game.stage.backgroundColor = '#FFA07A';
         }         

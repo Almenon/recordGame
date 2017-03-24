@@ -11,13 +11,39 @@ var enemyTween;
 var enemyTweenSmall;
 var enemy;
 var LEN = 350;
+var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 
-singleEnemy = function(){
-    rot = .25*Math.PI;
-    y = Math.sin(rot)*LEN;
-    x = Math.cos(rot)*LEN;
-    enemy = game.add.sprite(400+x,300+y, 'bug');
-    enemy.enableBody = true;    
+// start: radians.  default is 1 (left center)
+spawnEnemies = function(start, end){
+    var start = start ? start : 1 //default 1
+    var end = end ? end : end+.5 //default start+.1 for 45 degree arc
+    for(i=start;i<end; i += NUMBERENEMIES){ 
+        rad = i*Math.PI;
+        y = Math.sin(rad)*LEN;
+        x = Math.cos(rad)*LEN;
+        var enemy = enemies.create(game.world.centerX+x,game.world.centerY+y, 'bug');
+        enemy.body.velocity.setTo(-x/10,-y/10);
+        //enemy.anchor.set(.5); doesn't work
+        enemy.rad = rad;
+    }
+}
+
+// start: radians.  default is 1 (left center)
+singleEnemy = function(start){
+    var start = start ? start : 1 //default 1
+    spawnEnemies(start,start+NUMBERENEMIES/2);
+}
+
+// start: radians.  default is 1 (left center)
+halfCircle = function(start){
+    var start = start ? start : 1 //default 1
+    spawnEnemies(start,start+1);
+}
+
+// start: radians.  default is 1 (left center)
+almostFullCircle = function(start){
+    var start = start ? start : 1 //default 1
+    spawnEnemies(start,start+1.9);
 }
 
 function create() {
@@ -39,16 +65,7 @@ function create() {
     enemies = game.add.group();
     enemies.enableBody = true;
 
-    numEnemies = 2;
-    for(i=1;i<numEnemies; i += .01){
-        rad = i*Math.PI;
-        y = Math.sin(rad)*LEN;
-        x = Math.cos(rad)*LEN;
-        var enemy = enemies.create(game.world.centerX+x,game.world.centerY+y, 'bug');
-        enemy.body.velocity.setTo(-x/10,-y/10);
-        enemy.anchor.set(.5);
-        enemy.rad = rad;
-    }
+    halfCircle();
 
     game.physics.enable(enemies, Phaser.Physics.ARCADE);
     game.physics.enable(sprite, Phaser.Physics.ARCADE);

@@ -27,7 +27,7 @@ var dataAverage = [42, 42, 42, 42];   // an array recording data for the last 4 
 var waveImgs = []; // array of wave images with different stroke thicknesses
 var waveHit = false;
 
-noSound = true; //disables sound and sound effects for testing purposes
+noSound = false; //disables sound and sound effects for testing purposes
 
 function init() {
     if(noSound) return;
@@ -132,8 +132,21 @@ function tick(evt) {
 	if (dataDiff > COLOR_CHANGE_THRESHOLD) {
 		circleHue = circleHue + dataDiff;
 	}
-    console.log(circleHue);
-    enemies.setAll('tint', circleHue);
+
+	if(currentEnemyGroup < oldestEnemy){
+		//in this case, alive enemies wrap around the allEnemies array
+		for(i=oldestEnemy; i<MAXENEMIES-1;i++){
+			allEnemies[i].setAll('tint', circleHue);
+		}
+		for(i=0; i<=currentEnemyGroup;i++){
+			allEnemies[i].setAll('tint', circleHue);
+		}
+	}
+	else{
+		for(i=oldestEnemy; i<currentEnemyGroup;i++){
+			allEnemies[i].setAll('tint', circleHue);
+		}
+	}
 
 	// emit a wave for large enough changes
 	if (dataDiff > WAVE_EMIT_THRESHOLD) {
@@ -144,7 +157,7 @@ function tick(evt) {
         //    enemyTweenSmall.start();
         //},100); //i should be able to call phaser yoyo() instead of doing this, not sure why it wasnt working
 
-        console.log('wave' + dataDiff * .1 + 1);
+        //console.log('wave' + dataDiff * .1 + 1);
 	}
     //game.add.tween(sprite.scale).to({x: 2, y: 2});
     //game.stage.backgroundColor = circleHue;

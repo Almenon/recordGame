@@ -1,17 +1,19 @@
 var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render: render });
 
-function preload() {
-    game.load.image('bug', 'whiteBug.png');
-    game.load.image('arrow', 'arrow.png');
-    game.load.image('record', 'record.png');
-}
-
 var player;
 var enemyTween;
 var enemyTweenSmall;
 var enemy;
 var LEN = 450; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
+var allEnemies = [];
+var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated
+var currentEnemyGroup = 0;
+var oldestEnemy = 0;
+
+//////////////////////////////////////////////////////////////
+/// ENEMY SPAWNING CODE
+//////////////////////////////////////////////////////////////
 
 // start: radians.  default is 1 (left center)
 spawnEnemies = function(start, end){
@@ -56,10 +58,20 @@ almostFullCircle = function(start){
     spawnEnemies(start,start+1.9);
 }
 
-var allEnemies = [];
-var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated
-var currentEnemyGroup = 0;
-var oldestEnemy = 0;
+
+
+//////////////////////////////////////////////////////////////
+/// PHASER FUNCS - RPELOAD, CREATE, UPDATE, RENDER
+//////////////////////////////////////////////////////////////
+
+
+
+function preload() {
+    game.load.image('bug', 'whiteBug.png');
+    game.load.image('arrow', 'arrow.png');
+    game.load.image('record', 'record.png');
+}
+
 
 function create() {
 
@@ -107,9 +119,7 @@ function create() {
 
 }
 
-
-function update() {
-
+var despawnOldestEnemyGroup = function(){
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
         var aEnemy = allEnemies[oldestEnemy].children[0]; //get an arbitrary enemy from the oldest surviving group (first to die)
         if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < 210){
@@ -117,10 +127,12 @@ function update() {
             if(++oldestEnemy > MAXENEMIES-1) oldestEnemy = 0;
         }
     }
+}
+
+var collisionCheck = function(){
 
     //sprite.rotation flips to - and decreases when up top.  why? idk....
     var spriteRad = player.rotation < 0 ? 2*Math.PI+player.rotation : player.rotation;
-    //console.log(spriteRad);
 
     allEnemies[oldestEnemy].forEach(function(enemy){ //if there's many groups next to circle taking just oldestEnemy will fail.  But for now it works
 
@@ -134,6 +146,12 @@ function update() {
             game.stage.backgroundColor = '#FFA07A';
         }         
     });
+}
+
+function update() {
+
+    despawnOldestEnemyGroup();
+    collisionCheck();
 
     //  Reset the acceleration
     player.body.angularAcceleration = 0;
@@ -177,6 +195,11 @@ function fullScreenSwitch() {
         game.scale.startFullScreen(false);
     }
 }
+
+
+//////////////////////////////////////////////////////////////
+/// SOCKET LOGIC FOR MULTIPLAYER
+//////////////////////////////////////////////////////////////
 
 /*
 

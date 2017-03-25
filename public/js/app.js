@@ -11,6 +11,8 @@ var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups o
 var currentEnemyGroup = 0;
 var oldestEnemy = 0;
 var SPEED = 5; //lower the faster
+var collisionDistance;
+var despawnDistance;
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
@@ -21,7 +23,7 @@ spawnEnemies = function(start, end){
     var start = start ? start : 1 //default 1
     var end = end ? end : end+.5 //default start+.1 for 45 degree arc
 
-    if(currentEnemyGroup == MAXENEMIES-1) currentEnemyGroup = 0;
+    if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
     var currentGroup = allEnemies[currentEnemyGroup++]
 
     for(i=start;i<end; i += NUMBERENEMIES){ 
@@ -73,6 +75,22 @@ function preload() {
     game.load.image('record', 'record.png');
 }
 
+var semiCircleTimer;
+var singleEnemyTimer;
+var almostFullCircleTimer;
+
+function start(){
+    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
+    halfCircle();
+    //There are several issues that need to be addressed:
+    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
+    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
+    // 3. player should be constantly moving.  Player is not moving enough
+    semiCircleTimer = setInterval(function(){semiCircle(Math.random()*2)},1000)
+    //setInterval(function(){halfCircle(Math.random()*2)},2000)
+    singleEnemyTimer = setInterval(function(){singleEnemy(Math.random()*2)},1500)
+    almostFullCircleTimer = setInterval(function(){almostFullCircle(Math.random()*2)},5000)
+}
 
 function create() {
 
@@ -81,6 +99,14 @@ function create() {
     game.stage.backgroundColor = '#FFFFFF';//'#0072bc'; blue
     //setting size to body width to avoid scrollbar appearing
     game.scale.setGameSize($('body').width(), window.innerHeight);
+    game.onPause.add(function(){
+        clearInterval(semiCircleTimer);
+        clearInterval(singleEnemyTimer);
+        clearInterval(almostFullCircleTimer);
+    })
+    game.onResume.add(function(){
+        start();
+    })
 
     for(i=0;i<MAXENEMIES;i++){
         enemies = game.add.group();
@@ -107,6 +133,8 @@ function create() {
     record.anchor.setTo(.5);
     game.physics.enable(record, Phaser.Physics.ARCADE);
     record.body.angularVelocity = 100;
+    despawnDistance = record.height/2;
+    collisionDistance = despawnDistance + 40;
 
     //TWEENS: (doesn't work atm)
     //enemyTweenCenter = game.add.tween(enemies.position).to({x: -enemies.width, y: -enemies.height});
@@ -116,22 +144,13 @@ function create() {
     enemyTweenSmall.timeScale = 2;
     enemyTween.onComplete.add(function(){enemyTweenSmall.start();});
 
-    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
-    halfCircle();
-    //There are several issues that need to be addressed:
-    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
-    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
-    // 3. player should be constantly moving.  Player is not moving enough
-    setInterval(function(){semiCircle(Math.random()*2)},1000)
-    //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    setInterval(function(){singleEnemy(Math.random()*2)},1500)
-    setInterval(function(){almostFullCircle(Math.random()*2)},5000)
+    start();
 }
 
 var despawnOldestEnemyGroup = function(){
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
         var aEnemy = allEnemies[oldestEnemy].children[0]; //get an arbitrary enemy from the oldest surviving group (first to die)
-        if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < 210){
+        if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < despawnDistance){
             allEnemies[oldestEnemy].removeChildren(); //or enemies.forEachAlive(x=>x.kill()).  maybe better for perfeormance?
             if(++oldestEnemy > MAXENEMIES-1) oldestEnemy = 0;
         }
@@ -150,7 +169,7 @@ var collisionCheck = function(){
         var radians = numRotations*2*Math.PI;
         radians = enemy.rad - radians; //get rid of any excess rotations
         
-        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < 280
+        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
             game.stage.backgroundColor = '#FFA07A';
         }         

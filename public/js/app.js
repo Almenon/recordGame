@@ -1,4 +1,4 @@
-var game = new Phaser.Game(800, 700, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render: render });
 
 function preload() {
     game.load.image('bug', 'whiteBug.png');
@@ -10,7 +10,7 @@ var player;
 var enemyTween;
 var enemyTweenSmall;
 var enemy;
-var LEN = 350;
+var LEN = 450; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 
 // start: radians.  default is 1 (left center)
@@ -66,8 +66,9 @@ function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.time.advancedTiming = true //for debug
     game.stage.backgroundColor = '#FFFFFF';//'#0072bc'; blue
+    //setting size to body width to avoid scrollbar appearing
+    game.scale.setGameSize($('body').width(), window.innerHeight);
 
-    
     for(i=0;i<MAXENEMIES;i++){
         enemies = game.add.group();
         enemies.enableBody = true;
@@ -163,6 +164,18 @@ function render() {
     //game.debug.text('angularDrag: ' + sprite.body.angularDrag, 32, 264);
     //game.debug.text('deltaZ: ' + sprite.body.deltaZ(), 32, 296);
 
+}
+
+
+function fullScreenSwitch() {
+    if (game.scale.isFullScreen)
+    {
+        game.scale.stopFullScreen();
+    }
+    else
+    {
+        game.scale.startFullScreen(false);
+    }
 }
 
 /*

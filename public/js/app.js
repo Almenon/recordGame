@@ -4,12 +4,13 @@ var player;
 var enemyTween;
 var enemyTweenSmall;
 var enemy;
-var LEN = 450; //distance from center
+var LEN = 550; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 var allEnemies = [];
 var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated
 var currentEnemyGroup = 0;
 var oldestEnemy = 0;
+var SPEED = 5; //lower the faster
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
@@ -28,7 +29,7 @@ spawnEnemies = function(start, end){
         y = Math.sin(rad)*LEN;
         x = Math.cos(rad)*LEN;
         var enemy = currentGroup.create(game.world.centerX+x,game.world.centerY+y, 'bug');
-        enemy.body.velocity.setTo(-x/10,-y/10);
+        enemy.body.velocity.setTo(-x/SPEED,-y/SPEED); //return to center
         //enemy.anchor.set(.5); doesn't work
         enemy.rad = rad;
     }
@@ -55,7 +56,7 @@ halfCircle = function(start){
 // start: radians.  default is 1 (left center)
 almostFullCircle = function(start){
     var start = start ? start : 1 //default 1
-    spawnEnemies(start,start+1.9);
+    spawnEnemies(start,start+1.8);
 }
 
 
@@ -87,8 +88,6 @@ function create() {
         game.physics.enable(enemies, Phaser.Physics.ARCADE);
         allEnemies.push(enemies);
     }
-
-    halfCircle();
     
     //PLAYER SPRITE (spinning arrow)
     player = game.add.sprite(game.world.centerX, game.world.centerY, 'arrow');
@@ -117,6 +116,16 @@ function create() {
     enemyTweenSmall.timeScale = 2;
     enemyTween.onComplete.add(function(){enemyTweenSmall.start();});
 
+    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
+    halfCircle();
+    //There are several issues that need to be addressed:
+    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
+    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
+    // 3. player should be constantly moving.  Player is not moving enough
+    setInterval(function(){semiCircle(Math.random()*2)},1000)
+    //setInterval(function(){halfCircle(Math.random()*2)},2000)
+    setInterval(function(){singleEnemy(Math.random()*2)},1500)
+    setInterval(function(){almostFullCircle(Math.random()*2)},5000)
 }
 
 var despawnOldestEnemyGroup = function(){

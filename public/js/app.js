@@ -72,12 +72,8 @@ almostFullCircle = function(start){
 function preload() {
     game.load.image('bug', 'whiteBug.png');
     game.load.image('arrow', 'arrow.png');
-    game.load.image('record', 'record.png');
+    game.load.image('record', 'record2.png');
 }
-
-var semiCircleTimer;
-var singleEnemyTimer;
-var almostFullCircleTimer;
 
 function start(){
     //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
@@ -86,10 +82,10 @@ function start(){
     // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
     // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
     // 3. player should be constantly moving.  Player is not moving enough
-    semiCircleTimer = setInterval(function(){semiCircle(Math.random()*2)},1000)
+    game.time.events.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
     //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    singleEnemyTimer = setInterval(function(){singleEnemy(Math.random()*2)},1500)
-    almostFullCircleTimer = setInterval(function(){almostFullCircle(Math.random()*2)},5000)
+    game.time.events.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
+    game.time.events.loop(Phaser.Timer.SECOND*5, function(){almostFullCircle(Math.random()*2)});
 }
 
 function create() {
@@ -99,14 +95,7 @@ function create() {
     game.stage.backgroundColor = '#FFFFFF';//'#0072bc'; blue
     //setting size to body width to avoid scrollbar appearing
     game.scale.setGameSize($('body').width(), window.innerHeight);
-    game.onPause.add(function(){
-        clearInterval(semiCircleTimer);
-        clearInterval(singleEnemyTimer);
-        clearInterval(almostFullCircleTimer);
-    })
-    game.onResume.add(function(){
-        start();
-    })
+
 
     for(i=0;i<MAXENEMIES;i++){
         enemies = game.add.group();
@@ -203,7 +192,7 @@ function render() {
     //game.debug.text(game.time.fps, 2, 14, "#00ff00");
     //game.debug.cameraInfo(game.camera, 32, 32);
     //game.debug.bodyInfo(sprite, 32, 32);
-    //game.debug.body(sprite);
+    game.debug.body(record);
     //game.debug.spriteInfo(sprite, 32, 32);
     //game.debug.text('angularVelocity: ' + sprite.body.angularVelocity, 32, 200);
     //game.debug.text('angularAcceleration: ' + sprite.body.angularAcceleration, 32, 232);

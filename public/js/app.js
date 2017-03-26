@@ -4,7 +4,7 @@ var player;
 var enemyTween;
 var enemyTweenSmall;
 var enemy;
-var radius = 550; //distance from center
+var radius; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 var allEnemies = [];
 var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated
@@ -94,6 +94,7 @@ function create() {
     game.stage.backgroundColor = '#FFFFFF';//'#0072bc'; blue
     //setting size to body width to avoid scrollbar appearing
     game.scale.setGameSize($('body').width(), window.innerHeight);
+    radius = Math.max(this.game.width, this.game.height)/2 + 20; //20 is arbitrary number so enemies are generated outside screen
     game.onPause.add(function(){
         if(musicEnabled) soundInstance.paused = true;
     })

@@ -82,7 +82,7 @@ function start(){
 
 
 function preload() {
-    game.load.image('bug', 'whiteBug.png');
+    musicEnabled ? game.load.image('bug', 'whiteBug.png') : game.load.image('bug', 'bug.png');;
     game.load.image('arrow', 'arrow.png');
     game.load.image('record', 'record2cropped.png');
     game.load.image('dot', 'dot.png');

@@ -110,10 +110,11 @@ function create() {
         allEnemies.push(enemies);
     }
     
+    
     //PLAYER SPRITE (spinning arrow)
     player = game.add.sprite(game.world.centerX, game.world.centerY, 'arrow');
     player.anchor.setTo(0,.5);
-    player.scale.setTo(.44);
+    player.scale.setTo(.33);
     player.enableBody = false;
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
@@ -126,6 +127,7 @@ function create() {
     //RECORD (just for visuals)
     record = game.add.sprite(game.world.centerX, game.world.centerY, 'record');
     record.anchor.setTo(.5);
+    record.scale.setTo(.7);
     game.physics.enable(record, Phaser.Physics.ARCADE);
     record.body.angularVelocity = 100;
     despawnDistance = record.height/2;
@@ -195,7 +197,7 @@ var collisionCheck = function(){
     });
 }
 
-function update() {
+function update() { //fps is 60, so should complete within 16 ms
 
     despawnOldestEnemyGroup();
     collisionCheck();
@@ -219,7 +221,7 @@ function update() {
 }
 
 function render() {
-    //game.debug.text(game.time.fps, 2, 14, "#00ff00");
+    //game.debug.text(game.time.fps, 2, 14, "#00ff00"); //the FPS is not good on slow devices ~ 30-60.  Maybe lock it to 30 on slow devices for consistent fps?
     //game.debug.cameraInfo(game.camera, 32, 32);
     //game.debug.bodyInfo(sprite, 32, 32);
     //game.debug.body(record);

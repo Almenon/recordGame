@@ -61,7 +61,18 @@ almostFullCircle = function(start){
     spawnEnemies(start,start+1.8);
 }
 
-
+function start(){
+    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
+    //There are several issues that need to be addressed:
+    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
+    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
+    // 3. player should be constantly moving.  Player is not moving enough
+    game.time.events.loop(Phaser.Timer.SECOND*10, function(){SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
+    game.time.events.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
+    //setInterval(function(){halfCircle(Math.random()*2)},2000)
+    game.time.events.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
+    game.time.events.loop(Phaser.Timer.SECOND*6, function(){almostFullCircle(Math.random()*2)});
+}
 
 //////////////////////////////////////////////////////////////
 /// PHASER FUNCS - RPELOAD, CREATE, UPDATE, RENDER
@@ -74,19 +85,6 @@ function preload() {
     game.load.image('arrow', 'arrow.png');
     game.load.image('record', 'record2cropped.png');
     game.load.image('dot', 'dot.png');
-}
-
-function start(){
-    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
-    halfCircle();
-    //There are several issues that need to be addressed:
-    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
-    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
-    // 3. player should be constantly moving.  Player is not moving enough
-    game.time.events.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
-    //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    game.time.events.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
-    game.time.events.loop(Phaser.Timer.SECOND*5, function(){almostFullCircle(Math.random()*2)});
 }
 
 function create() {

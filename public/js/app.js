@@ -13,6 +13,7 @@ var oldestEnemy = 0;
 var SPEED = 5; //lower the faster
 var collisionDistance;
 var despawnDistance;
+var DEBUG = false;
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
@@ -58,7 +59,7 @@ halfCircle = function(start){
 // start: radians.  default is 1 (left center)
 almostFullCircle = function(start){
     var start = start ? start : 1 //default 1
-    spawnEnemies(start,start+1.8);
+    spawnEnemies(start,start+1.7);
 }
 
 function start(){
@@ -159,6 +160,22 @@ var despawnOldestEnemyGroup = function(){
     }
 }
 
+function flashOrange(){
+        game.stage.backgroundColor = '#FFA07A';
+        setTimeout(function(){game.stage.backgroundColor = '#FFFFFF';},100);
+}
+
+function endGame(){
+    if(DEBUG) flashOrange();
+    else{
+        game.stage.backgroundColor = '#FFA07A';
+        game.paused = true;
+        var style = { font: "65px Arial", fill: "#ff0044", align: "center" };
+        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again", style);
+        gameOverText.anchor.setTo(.5);
+    }
+}
+
 var collisionCheck = function(){
 
     //sprite.rotation flips to - and decreases when up top.  why? idk....
@@ -173,8 +190,7 @@ var collisionCheck = function(){
         
         if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
-            game.stage.backgroundColor = '#FFA07A';
-            //game.paused = true;
+            endGame();
         }         
     });
 }

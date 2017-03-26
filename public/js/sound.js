@@ -133,20 +133,7 @@ function tick(evt) {
 		circleHue = circleHue + dataDiff;
 	}
 
-	if(currentEnemyGroup < oldestEnemy){
-		//in this case, alive enemies wrap around the allEnemies array
-		for(i=oldestEnemy; i<MAXENEMIES-1;i++){
-			allEnemies[i].setAll('tint', circleHue);
-		}
-		for(i=0; i<=currentEnemyGroup;i++){
-			allEnemies[i].setAll('tint', circleHue);
-		}
-	}
-	else{
-		for(i=oldestEnemy; i<currentEnemyGroup;i++){
-			allEnemies[i].setAll('tint', circleHue);
-		}
-	}
+	setTints(circleHue);
 
 	// emit a wave for large enough changes
 	if (dataDiff > WAVE_EMIT_THRESHOLD) {
@@ -161,4 +148,21 @@ function tick(evt) {
 	}
     //game.add.tween(sprite.scale).to({x: 2, y: 2});
     //game.stage.backgroundColor = circleHue;
+}
+
+function setTints(hue){
+	if(currentEnemyGroup < oldestEnemy){
+		//in this case, alive enemies wrap around the allEnemies array
+		for(i=oldestEnemy; i<MAXENEMIES-1;i++){
+			allEnemies[i].setAll('tint', hue);
+		}
+		for(i=0; i<=currentEnemyGroup;i++){
+			allEnemies[i].setAll('tint', hue);
+		}
+	}
+	else{
+		for(i=oldestEnemy; i<currentEnemyGroup;i++){
+			allEnemies[i].setAll('tint', hue);
+		}
+	}
 }

@@ -4,7 +4,7 @@ var player;
 var enemyTween;
 var enemyTweenSmall;
 var enemy;
-var LEN = 550; //distance from center
+var radius = 550; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 var allEnemies = [];
 var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated
@@ -28,11 +28,11 @@ spawnEnemies = function(start, end){
 
     for(i=start;i<end; i += NUMBERENEMIES){ 
         rad = i*Math.PI;
-        y = Math.sin(rad)*LEN;
-        x = Math.cos(rad)*LEN;
+        y = Math.sin(rad)*radius;
+        x = Math.cos(rad)*radius;
         var enemy = currentGroup.create(game.world.centerX+x,game.world.centerY+y, 'bug');
         enemy.body.velocity.setTo(-x/SPEED,-y/SPEED); //return to center
-        //enemy.anchor.set(.5); doesn't work
+        enemy.anchor.setTo(.5); //center it, otherwise the arc will be lopsided
         enemy.rad = rad;
     }
 }
@@ -72,7 +72,8 @@ almostFullCircle = function(start){
 function preload() {
     game.load.image('bug', 'whiteBug.png');
     game.load.image('arrow', 'arrow.png');
-    game.load.image('record', 'record2.png');
+    game.load.image('record', 'record2cropped.png');
+    game.load.image('dot', 'dot.png');
 }
 
 function start(){
@@ -112,7 +113,7 @@ function create() {
     //PLAYER SPRITE (spinning arrow)
     player = game.add.sprite(game.world.centerX, game.world.centerY, 'arrow');
     player.anchor.setTo(0,.5);
-    player.scale.setTo(.3);
+    player.scale.setTo(.44);
     player.enableBody = false;
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
@@ -128,7 +129,7 @@ function create() {
     game.physics.enable(record, Phaser.Physics.ARCADE);
     record.body.angularVelocity = 100;
     despawnDistance = record.height/2;
-    collisionDistance = despawnDistance + 40;
+    collisionDistance = despawnDistance + game.cache.getImage("bug").width/2 + 46; //46 being arrow width
 
     //TWEENS: (doesn't work atm)
     //enemyTweenCenter = game.add.tween(enemies.position).to({x: -enemies.width, y: -enemies.height});
@@ -137,6 +138,14 @@ function create() {
     enemyTween.timeScale = 2;
     enemyTweenSmall.timeScale = 2;
     enemyTween.onComplete.add(function(){enemyTweenSmall.start();});
+
+    //DEBUG DOTS
+    //game.add.sprite(game.world.centerX, game.world.centerY, 'dot'); //center
+    //game.add.sprite(game.world.centerX+radius, game.world.centerY, 'dot'); //record edge
+    //game.add.sprite(game.world.centerX+collisionDistance, game.world.centerY, 'dot'); //collission distance
+    //game.add.sprite(game.world.centerX-collisionDistance, game.world.centerY, 'dot');
+    //game.add.sprite(game.world.centerX-despawnDistance, game.world.centerY, 'dot'); //depsawn distance
+    //game.add.sprite(game.world.centerX+despawnDistance, game.world.centerY, 'dot');
 
     start();
 }
@@ -166,6 +175,7 @@ var collisionCheck = function(){
         if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
             game.stage.backgroundColor = '#FFA07A';
+            //game.paused = true;
         }         
     });
 }
@@ -197,7 +207,7 @@ function render() {
     //game.debug.text(game.time.fps, 2, 14, "#00ff00");
     //game.debug.cameraInfo(game.camera, 32, 32);
     //game.debug.bodyInfo(sprite, 32, 32);
-    game.debug.body(record);
+    //game.debug.body(record);
     //game.debug.spriteInfo(sprite, 32, 32);
     //game.debug.text('angularVelocity: ' + sprite.body.angularVelocity, 32, 200);
     //game.debug.text('angularAcceleration: ' + sprite.body.angularAcceleration, 32, 232);

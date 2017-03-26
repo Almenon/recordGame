@@ -95,7 +95,12 @@ function create() {
     game.stage.backgroundColor = '#FFFFFF';//'#0072bc'; blue
     //setting size to body width to avoid scrollbar appearing
     game.scale.setGameSize($('body').width(), window.innerHeight);
-
+    game.onPause.add(function(){
+        if(musicEnabled) soundInstance.paused = true;
+    })
+    game.onResume.add(function(){
+        if(musicEnabled) soundInstance.paused = false;
+    })
 
     for(i=0;i<MAXENEMIES;i++){
         enemies = game.add.group();

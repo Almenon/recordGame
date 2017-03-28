@@ -90,6 +90,7 @@ function preload() {
     game.load.image('arrow', 'arrow.png');
     game.load.image('record', 'record2cropped.png');
     game.load.image('dot', 'dot.png');
+    game.load.image('black','black.png'); //this is stupid.  fix later
 }
 
 function create() {
@@ -171,13 +172,20 @@ function flashOrange(){
         setTimeout(function(){game.stage.backgroundColor = '#FFFFFF';},100);
 }
 
+function dim(alpha){
+        var dim = game.add.sprite(0,0,'black')
+        dim.width = game.world.width; dim.height = game.world.height;
+        dim.alpha = alpha;
+}
+
 function endGame(){
     if(DEBUG) flashOrange();
     else{
-        game.stage.backgroundColor = '#FFA07A';
+        var endTime = Math.floor(gameTime.seconds);
         game.paused = true;
+        dim(.4);
         var style = { font: "65px Arial", fill: "#ff0044", align: "center" };
-        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + gameTime.seconds, style);
+        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + endTime, style);
         gameOverText.anchor.setTo(.5);
     }
 }

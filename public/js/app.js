@@ -14,6 +14,7 @@ var SPEED = 5; //lower the faster
 var collisionDistance;
 var despawnDistance;
 var DEBUG = false;
+var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exlcuding pauses
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
@@ -73,6 +74,9 @@ function start(){
     //setInterval(function(){halfCircle(Math.random()*2)},2000)
     game.time.events.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
     game.time.events.loop(Phaser.Timer.SECOND*6, function(){almostFullCircle(Math.random()*2)});
+
+    gameTime = game.time.create();
+    gameTime.start();
 }
 
 //////////////////////////////////////////////////////////////
@@ -173,7 +177,7 @@ function endGame(){
         game.stage.backgroundColor = '#FFA07A';
         game.paused = true;
         var style = { font: "65px Arial", fill: "#ff0044", align: "center" };
-        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again", style);
+        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + gameTime.seconds, style);
         gameOverText.anchor.setTo(.5);
     }
 }

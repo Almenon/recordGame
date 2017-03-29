@@ -13,7 +13,7 @@ var oldestEnemy = 0;
 var SPEED = 5; //lower the faster
 var collisionDistance;
 var despawnDistance;
-var DEBUG = false;
+var l33tHax = false; //allows you to survive death
 var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exlcuding pauses
 var enemyTimer;
 
@@ -198,7 +198,7 @@ function dim(alpha){
 }
 
 function endGame(){
-    if(DEBUG) flashOrange();
+    if(l33tHax) flashOrange();
     else{
         var endTime = Math.floor(gameTime.seconds);
         game.paused = true;
@@ -221,7 +221,8 @@ var collisionCheck = function(){
         var radians = numRotations*2*Math.PI;
         radians = enemy.rad - radians; //get rid of any excess rotations
         
-        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance
+        if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance 
+            && Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) > collisionDistance-55 //it's annoying to run into enemies that already passed pointer, so we ignore them
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
             endGame();
         }         

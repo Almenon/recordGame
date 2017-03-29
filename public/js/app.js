@@ -15,6 +15,7 @@ var collisionDistance;
 var despawnDistance;
 var DEBUG = false;
 var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exlcuding pauses
+var enemyTimer;
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
@@ -63,17 +64,35 @@ almostFullCircle = function(start){
     spawnEnemies(start,start+1.7);
 }
 
+// this method is ugly :/
+// calls function inbetween two pauses of duration = wait.
+// use for hard enemy groupings
+function inbetweenPauses(func, wait){
+    testTimer.pause();
+    setTimeout(function(){
+        func();
+        setTimeout(function(){
+            testTimer.resume();
+        },wait)
+    },wait)
+}
+
+//function hardChallenge(){
+//    hardChallenges[Math.random()*hardChallenges.length]
+//
+//}
+
 function start(){
     //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
     //There are several issues that need to be addressed:
     // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
-    // 2. Random arcs are not fun and do not seem random - for example, sometimes arcs happen in the same place repeatedly
-    // 3. player should be constantly moving.  Player is not moving enough
     game.time.events.loop(Phaser.Timer.SECOND*10, function(){SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
-    game.time.events.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
+    testTimer = game.time.create();
+    testTimer.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
+    testTimer.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
+    testTimer.start();
     //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    game.time.events.loop(Phaser.Timer.SECOND*1.5, function(){singleEnemy(Math.random()*2)});
-    game.time.events.loop(Phaser.Timer.SECOND*6, function(){almostFullCircle(Math.random()*2)});
+    game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, function(){almostFullCircle(Math.random()*2)}, 600);
 
     gameTime = game.time.create();
     gameTime.start();
@@ -234,6 +253,7 @@ function update() { //fps is 60, so should complete within 16 ms
 
 function render() {
     //game.debug.text(game.time.fps, 2, 14, "#00ff00"); //the FPS is not good on slow devices ~ 30-60.  Maybe lock it to 30 on slow devices for consistent fps?
+    game.debug.text(Math.floor(gameTime.seconds),2,14);
     //game.debug.cameraInfo(game.camera, 32, 32);
     //game.debug.bodyInfo(sprite, 32, 32);
     //game.debug.body(record);

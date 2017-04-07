@@ -23,8 +23,8 @@ var enemyTimer;
 
 // start: radians.  default is 1 (left center)
 spawnEnemies = function(start, end){
-    var start = start ? start : 1 //default 1
-    var end = end ? end : end+.5 //default start+.1 for 45 degree arc
+    var start = start == null ? 1: start //default 1
+    var end = end == null ? end+.5 : end //default start+.1 for 45 degree arc
 
     if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
     var currentGroup = allEnemies[currentEnemyGroup++]
@@ -42,25 +42,25 @@ spawnEnemies = function(start, end){
 
 // start: radians.  default is 1 (left center)
 singleEnemy = function(start){
-    var start = start ? start : 1 //default 1
+    var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
 }
 
 // start: radians.  default is 1 (left center)
 semiCircle = function(start){
-    var start = start ? start : 1 //default 1
+    var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+.5);
 }
 
 // start: radians.  default is 1 (left center)
 halfCircle = function(start){
-    var start = start ? start : 1 //default 1
+    var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+1);
 }
 
 // start: radians.  default is 1 (left center)
 almostFullCircle = function(start){
-    var start = start ? start : 1 //default 1
+    var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+1.7);
 }
 
@@ -68,11 +68,11 @@ almostFullCircle = function(start){
 // calls function inbetween two pauses of duration = wait.
 // use for hard enemy groupings
 function inbetweenPauses(func, wait){
-    testTimer.pause();
+    enemyTimer.pause();
     setTimeout(function(){
         func();
         setTimeout(function(){
-            testTimer.resume();
+            enemyTimer.resume();
         },wait)
     },wait)
 }
@@ -83,24 +83,63 @@ function inbetweenPauses(func, wait){
 //}
 
 function start(){
+
+    //set up timer for scoring upon game end
+    gameTime = game.time.create();
+    gameTime.start();
+
+    enemyChallengeTest3();
+    //setUpEnemySpawning();
+}
+
+function setUpEnemySpawning(){
     //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
     //There are several issues that need to be addressed:
     // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
     game.time.events.loop(Phaser.Timer.SECOND*10, function(){SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
-    testTimer = game.time.create();
-    testTimer.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
-    testTimer.loop(Phaser.Timer.SECOND*1.5, function(){
+    enemyTimer = game.time.create();
+    enemyTimer.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
+    enemyTimer.loop(Phaser.Timer.SECOND*1.5, function(){
         singleEnemy(Math.random()*2); //2 single enemies because 2 semiCircles causes performance issues
         singleEnemy(Math.random()*2)
     });
-    testTimer.start();
+    enemyTimer.start();
     //setInterval(function(){halfCircle(Math.random()*2)},2000)
     game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, function(){almostFullCircle(Math.random()*2)}, 600);
-
-    gameTime = game.time.create();
-    gameTime.start();
 }
 
+function enemyChallengeTest1(){ //full circles quarter-interval gaps (not that interesting)
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    for(i=0;i<2;i+=.5) enemyTimer.add(time+=1700, almostFullCircle, null, i);
+    enemyTimer.start();
+}
+
+function enemyChallengeTest2(){ //many full circles with moving gap (fix performance bug before using)
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    for(var i=0;i<1;i+=.05) enemyTimer.add(time+=500, almostFullCircle, null, i);
+    enemyTimer.start();
+}
+
+function enemyChallengeTest3(){ //full circles opposite gaps
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    var startRadian = Math.random();
+    for(i=startRadian; i<startRadian+4; i++) enemyTimer.add(time+=1300, almostFullCircle, null, i);
+    //todo: spawn time should happen faster at higher speeds
+    enemyTimer.start();
+}
+
+function enemyChallengeTest4(){ //alternating gaps
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    var startRadian = Math.random();
+    for(i=0; i<4; i+=1){
+        enemyTimer.add(time+=500, almostFullCircle, null, startRadian + i%2/3);
+    }
+    enemyTimer.start();
+}
 
 //////////////////////////////////////////////////////////////
 /// COLLISION CODE (called by Phaser update)
@@ -242,9 +281,6 @@ function update() { //fps is 60, so should complete within 16 ms
 
     despawnOldestEnemyGroup();
     collisionCheck();
-
-    //  Reset the acceleration
-    player.body.angularAcceleration = 0;
 
     //  Apply acceleration if the left/right arrow keys are held down
     if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))

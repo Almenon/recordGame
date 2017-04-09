@@ -18,123 +18,6 @@ var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exl
 var enemyTimer;
 var enemies;
 
-//////////////////////////////////////////////////////////////
-/// ENEMY SPAWNING CODE
-//////////////////////////////////////////////////////////////
-
-// start: radians.  default is 1 (left center)
-function spawnEnemies(start=1, end){
-    if(end == null) end = start+.5; //end defaults to start+.5 for 45 degree arc
-
-    if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
-    var currentGroup = allEnemies[currentEnemyGroup++]
-
-    for(var i=start; i<end; i += NUMBERENEMIES){ 
-        var rad = i*Math.PI;
-        var y = Math.sin(rad)*radius;
-        var x = Math.cos(rad)*radius;
-        var enemy = currentGroup.create(game.world.centerX+x,game.world.centerY+y, 'bug');
-        enemy.body.velocity.setTo(-x/SPEED,-y/SPEED); //return to center
-        enemy.anchor.setTo(.5); //center it, otherwise the arc will be lopsided
-        enemy.rad = rad;
-    }
-}
-
-// start: radians.  default is 1 (left center)
-function singleEnemy(start = 1){
-    spawnEnemies(start, start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
-}
-
-// start: radians.  default is 1 (left center)
-function semiCircle(start = 1){
-    spawnEnemies(start,start+.5);
-}
-
-// start: radians.  default is 1 (left center)
-function halfCircle(start = 1){
-    spawnEnemies(start,start+1);
-}
-
-// start: radians.  default is 1 (left center)
-function almostFullCircle(start = 1){
-    spawnEnemies(start,start+1.7);
-}
-
-// this method is ugly :/
-// calls function inbetween two pauses of duration = wait.
-// use for hard enemy groupings
-function inbetweenPauses(func, wait){
-    enemyTimer.pause();
-    setTimeout(() => {
-        func();
-        setTimeout(() => {
-            enemyTimer.resume();
-        },wait)
-    },wait)
-}
-
-//function hardChallenge(){
-//    hardChallenges[Math.random()*hardChallenges.length]
-//}
-
-function start(){
-
-    //set up timer for scoring upon game end
-    gameTime = game.time.create();
-    gameTime.start();
-
-    enemyChallengeTest3();
-    //setUpEnemySpawning();
-}
-
-function setUpEnemySpawning(){
-    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell collision checking code is not up to this task.  also sometimes there are blank bugs
-    //There are several issues that need to be addressed:
-    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
-    game.time.events.loop(Phaser.Timer.SECOND*10, () => {SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
-    enemyTimer = game.time.create();
-    enemyTimer.loop(Phaser.Timer.SECOND, () => {semiCircle(Math.random()*2)});
-    enemyTimer.loop(Phaser.Timer.SECOND*1.5, () => {
-        singleEnemy(Math.random()*2); //2 single enemies because 2 semiCircles causes performance issues
-        singleEnemy(Math.random()*2)
-    });
-    enemyTimer.start();
-    //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, () => {almostFullCircle(Math.random()*2)}, 600);
-}
-
-function enemyChallengeTest1(){ //full circles quarter-interval gaps (not that interesting)
-    enemyTimer = game.time.create();
-    var time = 0; //.1, 1000
-    for(var i=0; i<2; i+=.5) enemyTimer.add(time+=1700, almostFullCircle, null, i);
-    enemyTimer.start();
-}
-
-function enemyChallengeTest2(){ //many full circles with moving gap (fix performance bug before using)
-    enemyTimer = game.time.create();
-    var time = 0; //.1, 1000
-    for(var i=0; i<1; i+=.05) enemyTimer.add(time+=500, almostFullCircle, null, i);
-    enemyTimer.start();
-}
-
-function enemyChallengeTest3(){ //full circles opposite gaps
-    enemyTimer = game.time.create();
-    var time = 0; //.1, 1000
-    var startRadian = Math.random();
-    for(var i=startRadian; i<startRadian+4; i++) enemyTimer.add(time+=1300, almostFullCircle, null, i);
-    //todo: spawn time should happen faster at higher speeds
-    enemyTimer.start();
-}
-
-function enemyChallengeTest4(){ //alternating gaps
-    enemyTimer = game.time.create();
-    var time = 0; //.1, 1000
-    var startRadian = Math.random();
-    for(var i=0; i<4; i+=1){
-        enemyTimer.add(time+=500, almostFullCircle, null, startRadian + i%2/3);
-    }
-    enemyTimer.start();
-}
 
 //////////////////////////////////////////////////////////////
 /// COLLISION CODE (called by Phaser update)
@@ -203,11 +86,129 @@ function collisionCheck(){
         radians = enemy.rad - radians; //get rid of any excess rotations
         
         if(Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) < collisionDistance 
-            && Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) > collisionDistance-55 //it's annoying to run into enemies that already passed pointer, so we ignore them
+            && Phaser.Math.distance(enemy.x,enemy.y,game.world.centerX,game.world.centerY) > collisionDistance-20 //it's annoying to run into enemies that already passed pointer, so we ignore them
                 && spriteRad > radians-.05 && spriteRad < radians+.05){
             endGame();
         }         
     });
+}
+
+//////////////////////////////////////////////////////////////
+/// ENEMY SPAWNING CODE
+//////////////////////////////////////////////////////////////
+
+// start: radians.  default is 1 (left center)
+function spawnEnemies(start=1, end){
+    if(end == null) end = start+.5; //end defaults to start+.5 for 45 degree arc
+
+    if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
+    var currentGroup = allEnemies[currentEnemyGroup++]
+
+    for(var i=start; i<end; i += NUMBERENEMIES){ 
+        var rad = i*Math.PI;
+        var y = Math.sin(rad)*radius;
+        var x = Math.cos(rad)*radius;
+        var enemy = currentGroup.create(game.world.centerX+x,game.world.centerY+y, 'bug');
+        enemy.body.velocity.setTo(-x/SPEED,-y/SPEED); //return to center
+        enemy.anchor.setTo(.5); //center it, otherwise the arc will be lopsided
+        enemy.rad = rad;
+    }
+}
+
+// start: radians.  default is 1 (left center)
+function singleEnemy(start = 1){
+    spawnEnemies(start, start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
+}
+
+// start: radians.  default is 1 (left center)
+function semiCircle(start = 1){
+    spawnEnemies(start,start+.5);
+}
+
+// start: radians.  default is 1 (left center)
+function halfCircle(start = 1){
+    spawnEnemies(start,start+1);
+}
+
+// start: radians.  default is 1 (left center)
+function almostFullCircle(start = 1){
+    spawnEnemies(start,start+1.7);
+}
+
+// this method is ugly :/
+// calls function inbetween two pauses of duration = wait.
+// use for hard enemy groupings
+function inbetweenPauses(func, wait){
+    enemyTimer.pause();
+    setTimeout(() => {
+        func();
+        setTimeout(() => {
+            enemyTimer.resume();
+        },wait)
+    },wait)
+}
+
+//function hardChallenge(){
+//    hardChallenges[Math.random()*hardChallenges.length]
+//}
+
+function start(){
+
+    //set up timer for scoring upon game end
+    gameTime = game.time.create();
+    gameTime.start();
+
+    //enemyChallengeTest3();
+    setUpEnemySpawning();
+}
+
+function setUpEnemySpawning(){
+    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell collision checking code is not up to this task.  also sometimes there are blank bugs
+    //There are several issues that need to be addressed:
+    // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
+    game.time.events.loop(Phaser.Timer.SECOND*10, () => {SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
+    enemyTimer = game.time.create();
+    enemyTimer.loop(Phaser.Timer.SECOND, () => {semiCircle(Math.random()*2)});
+    enemyTimer.loop(Phaser.Timer.SECOND*1.5, () => {
+        singleEnemy(Math.random()*2); //2 single enemies because 2 semiCircles causes performance issues
+        singleEnemy(Math.random()*2)
+    });
+    enemyTimer.start();
+    //setInterval(function(){halfCircle(Math.random()*2)},2000)
+    game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, () => {almostFullCircle(Math.random()*2)}, 600);
+}
+
+function enemyChallengeTest1(){ //full circles quarter-interval gaps (not that interesting)
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    for(var i=0; i<2; i+=.5) enemyTimer.add(time+=1700, almostFullCircle, null, i);
+    enemyTimer.start();
+}
+
+function enemyChallengeTest2(){ //many full circles with moving gap (fix performance bug before using)
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    for(var i=0; i<1; i+=.05) enemyTimer.add(time+=500, almostFullCircle, null, i);
+    enemyTimer.start();
+}
+
+function enemyChallengeTest3(){ //full circles opposite gaps
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    var startRadian = Math.random();
+    for(var i=startRadian; i<startRadian+4; i++) enemyTimer.add(time+=1300, almostFullCircle, null, i);
+    //todo: spawn time should happen faster at higher speeds
+    enemyTimer.start();
+}
+
+function enemyChallengeTest4(){ //alternating gaps
+    enemyTimer = game.time.create();
+    var time = 0; //.1, 1000
+    var startRadian = Math.random();
+    for(var i=0; i<4; i+=1){
+        enemyTimer.add(time+=500, almostFullCircle, null, startRadian + i%2/3);
+    }
+    enemyTimer.start();
 }
 
 
@@ -218,7 +219,7 @@ function collisionCheck(){
 
 function preload() {
     musicEnabled ? game.load.image('bug', 'whiteBug.png') : game.load.image('bug', 'bug.png');;
-    game.load.image('arrow', 'arrow.png');
+    game.load.image('arrow', 'whiteArrow.png');
     game.load.image('record', 'record2cropped.png');
     game.load.image('dot', 'dot.png');
     game.load.image('black','black.png'); //this is stupid.  fix later

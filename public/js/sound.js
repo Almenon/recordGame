@@ -28,6 +28,8 @@ var waveImgs = []; // array of wave images with different stroke thicknesses
 var waveHit = false;
 
 musicEnabled = true; //disables sound and sound effects for testing purposes
+backgroundColoringEnabled = true;
+enemyColoringEnabled = true; //disable this for performance improvement
 
 function init() {
     if(!musicEnabled) return;
@@ -133,7 +135,7 @@ function tick(evt) {
 		circleHue = circleHue + dataDiff;
 	}
 
-	setTints(circleHue);
+	coloring(circleHue); //ex: 0xFFFFFF
 
 	// emit a wave for large enough changes
 	if (dataDiff > WAVE_EMIT_THRESHOLD) {
@@ -150,7 +152,25 @@ function tick(evt) {
     //game.stage.backgroundColor = circleHue;
 }
 
-function setTints(hue){
+/**
+ * @summary colors background/player/enemies according to hue
+ * @param {number} hue 
+ */
+function coloring(hue){
+	if(backgroundColoringEnabled){
+		game.stage.setBackgroundColor(hue);
+		//invert color of player&enemies to be easily visible against background
+		hue = 0xFFFFFF-hue; //use 0x55FA2A for a light blue/green color profile, or 0xFFFFFF for yellow/blue
+		player.tint = hue;
+	}
+	if(enemyColoringEnabled) colorEnemies(hue);
+}
+
+/**
+ * @summary colors all enemies.  Has performance impact for slow computers
+ * @param {number} hue 
+ */
+function colorEnemies(hue){
 	if(currentEnemyGroup < oldestEnemy){
 		//in this case, alive enemies wrap around the allEnemies array
 		for(i=oldestEnemy; i<MAXENEMIES-1;i++){

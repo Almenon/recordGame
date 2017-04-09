@@ -218,11 +218,11 @@ function enemyChallengeTest4(){ //alternating gaps
 
 
 function preload() {
-    musicEnabled ? game.load.image('bug', 'whiteBug.png') : game.load.image('bug', 'bug.png');;
-    game.load.image('arrow', 'whiteArrow.png');
-    game.load.image('record', 'record2cropped.png');
-    game.load.image('dot', 'dot.png');
-    game.load.image('black','black.png'); //this is stupid.  fix later
+    musicEnabled ? game.load.image('bug', 'images/whiteBug.png') : game.load.image('bug', 'images/bug.png');;
+    game.load.image('arrow', 'images/whiteArrow.png');
+    game.load.image('record', 'images/record2cropped.png');
+    game.load.image('dot', 'images/dot.png');
+    game.load.image('black','images/black.png'); //this is stupid.  fix later
 }
 
 function create() {

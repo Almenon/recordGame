@@ -1,9 +1,10 @@
-var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', 
+{ preload: preload, create: create, update: update, render: render });
 
+//VARIABLES
 var player;
 var enemyTween;
 var enemyTweenSmall;
-var enemy;
 var radius; //distance from center
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 var allEnemies = [];
@@ -16,23 +17,24 @@ var despawnDistance;
 var l33tHax = false; //allows you to survive death
 var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exlcuding pauses
 var enemyTimer;
+var enemies;
 
 //////////////////////////////////////////////////////////////
 /// ENEMY SPAWNING CODE
 //////////////////////////////////////////////////////////////
 
 // start: radians.  default is 1 (left center)
-spawnEnemies = function(start, end){
+function spawnEnemies(start, end){
     var start = start == null ? 1: start //default 1
     var end = end == null ? end+.5 : end //default start+.1 for 45 degree arc
 
     if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
     var currentGroup = allEnemies[currentEnemyGroup++]
 
-    for(i=start;i<end; i += NUMBERENEMIES){ 
-        rad = i*Math.PI;
-        y = Math.sin(rad)*radius;
-        x = Math.cos(rad)*radius;
+    for(var i=start; i<end; i += NUMBERENEMIES){ 
+        var rad = i*Math.PI;
+        var y = Math.sin(rad)*radius;
+        var x = Math.cos(rad)*radius;
         var enemy = currentGroup.create(game.world.centerX+x,game.world.centerY+y, 'bug');
         enemy.body.velocity.setTo(-x/SPEED,-y/SPEED); //return to center
         enemy.anchor.setTo(.5); //center it, otherwise the arc will be lopsided
@@ -41,25 +43,25 @@ spawnEnemies = function(start, end){
 }
 
 // start: radians.  default is 1 (left center)
-singleEnemy = function(start){
+function singleEnemy(start){
     var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
 }
 
 // start: radians.  default is 1 (left center)
-semiCircle = function(start){
+function semiCircle(start){
     var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+.5);
 }
 
 // start: radians.  default is 1 (left center)
-halfCircle = function(start){
+function halfCircle(start){
     var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+1);
 }
 
 // start: radians.  default is 1 (left center)
-almostFullCircle = function(start){
+function almostFullCircle(start){
     var start = start == null ? 1 : start  //default 1
     spawnEnemies(start,start+1.7);
 }
@@ -111,14 +113,14 @@ function setUpEnemySpawning(){
 function enemyChallengeTest1(){ //full circles quarter-interval gaps (not that interesting)
     enemyTimer = game.time.create();
     var time = 0; //.1, 1000
-    for(i=0;i<2;i+=.5) enemyTimer.add(time+=1700, almostFullCircle, null, i);
+    for(var i=0; i<2; i+=.5) enemyTimer.add(time+=1700, almostFullCircle, null, i);
     enemyTimer.start();
 }
 
 function enemyChallengeTest2(){ //many full circles with moving gap (fix performance bug before using)
     enemyTimer = game.time.create();
     var time = 0; //.1, 1000
-    for(var i=0;i<1;i+=.05) enemyTimer.add(time+=500, almostFullCircle, null, i);
+    for(var i=0; i<1; i+=.05) enemyTimer.add(time+=500, almostFullCircle, null, i);
     enemyTimer.start();
 }
 
@@ -126,7 +128,7 @@ function enemyChallengeTest3(){ //full circles opposite gaps
     enemyTimer = game.time.create();
     var time = 0; //.1, 1000
     var startRadian = Math.random();
-    for(i=startRadian; i<startRadian+4; i++) enemyTimer.add(time+=1300, almostFullCircle, null, i);
+    for(var i=startRadian; i<startRadian+4; i++) enemyTimer.add(time+=1300, almostFullCircle, null, i);
     //todo: spawn time should happen faster at higher speeds
     enemyTimer.start();
 }
@@ -135,7 +137,7 @@ function enemyChallengeTest4(){ //alternating gaps
     enemyTimer = game.time.create();
     var time = 0; //.1, 1000
     var startRadian = Math.random();
-    for(i=0; i<4; i+=1){
+    for(var i=0; i<4; i+=1){
         enemyTimer.add(time+=500, almostFullCircle, null, startRadian + i%2/3);
     }
     enemyTimer.start();
@@ -174,12 +176,12 @@ function endGame(){
         game.paused = true;
         dim(.4);
         var style = { font: "65px Arial", fill: "#ff0044", align: "center" };
-        gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + endTime, style);
+        var gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + endTime, style);
         gameOverText.anchor.setTo(.5);
     }
 }
 
-var collisionCheck = function(){
+function collisionCheck(){
 
     //sprite.rotation flips to - and decreases when up top.  why? idk....
     var spriteRad = player.rotation < 0 ? 2*Math.PI+player.rotation : player.rotation;
@@ -250,7 +252,7 @@ function create() {
     player.body.angularDrag = 900;
 
     //RECORD (just for visuals)
-    record = game.add.sprite(game.world.centerX, game.world.centerY, 'record');
+    var record = game.add.sprite(game.world.centerX, game.world.centerY, 'record');
     record.anchor.setTo(.5);
     record.scale.setTo(.7);
     game.physics.enable(record, Phaser.Physics.ARCADE);

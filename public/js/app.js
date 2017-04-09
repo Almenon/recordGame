@@ -250,7 +250,7 @@ function create() {
     //PLAYER SPRITE (spinning arrow)
     player = game.add.sprite(game.world.centerX, game.world.centerY, 'arrow');
     player.anchor.setTo(0,.5);
-    player.scale.setTo(.33);
+    player.scale.setTo(.28);
     player.enableBody = false;
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
@@ -263,11 +263,12 @@ function create() {
     //RECORD (just for visuals)
     var record = game.add.sprite(game.world.centerX, game.world.centerY, 'record');
     record.anchor.setTo(.5);
-    record.scale.setTo(.7);
+    record.scale.setTo(.6);
     game.physics.enable(record, Phaser.Physics.ARCADE);
     record.body.angularVelocity = 100;
     despawnDistance = record.height/2;
-    collisionDistance = despawnDistance + game.cache.getImage("bug").width/2 + 46; //46 being arrow width
+    var arrowWidth = player.width - record.width/2;
+    collisionDistance = despawnDistance + game.cache.getImage("bug").width/2 + arrowWidth;
 
     //TWEENS: (doesn't work atm)
     //enemyTweenCenter = game.add.tween(enemies.position).to({x: -enemies.width, y: -enemies.height});

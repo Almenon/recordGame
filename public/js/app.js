@@ -1,5 +1,4 @@
-var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', 
-{ preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', { preload, create, update, render });
 
 //VARIABLES
 var player;
@@ -24,9 +23,8 @@ var enemies;
 //////////////////////////////////////////////////////////////
 
 // start: radians.  default is 1 (left center)
-function spawnEnemies(start, end){
-    var start = start == null ? 1: start //default 1
-    var end = end == null ? end+.5 : end //default start+.1 for 45 degree arc
+function spawnEnemies(start=1, end){
+    if(end == null) end = start+.5; //end defaults to start+.5 for 45 degree arc
 
     if(currentEnemyGroup == MAXENEMIES) currentEnemyGroup = 0;
     var currentGroup = allEnemies[currentEnemyGroup++]
@@ -43,26 +41,22 @@ function spawnEnemies(start, end){
 }
 
 // start: radians.  default is 1 (left center)
-function singleEnemy(start){
-    var start = start == null ? 1 : start  //default 1
+function singleEnemy(start = 1){
     spawnEnemies(start,start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
 }
 
 // start: radians.  default is 1 (left center)
-function semiCircle(start){
-    var start = start == null ? 1 : start  //default 1
+function semiCircle(start = 1){
     spawnEnemies(start,start+.5);
 }
 
 // start: radians.  default is 1 (left center)
-function halfCircle(start){
-    var start = start == null ? 1 : start  //default 1
+function halfCircle(start = 1){
     spawnEnemies(start,start+1);
 }
 
 // start: radians.  default is 1 (left center)
-function almostFullCircle(start){
-    var start = start == null ? 1 : start  //default 1
+function almostFullCircle(start = 1){
     spawnEnemies(start,start+1.7);
 }
 
@@ -71,9 +65,9 @@ function almostFullCircle(start){
 // use for hard enemy groupings
 function inbetweenPauses(func, wait){
     enemyTimer.pause();
-    setTimeout(function(){
+    setTimeout(() => {
         func();
-        setTimeout(function(){
+        setTimeout(() => {
             enemyTimer.resume();
         },wait)
     },wait)
@@ -98,16 +92,16 @@ function setUpEnemySpawning(){
     //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
     //There are several issues that need to be addressed:
     // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
-    game.time.events.loop(Phaser.Timer.SECOND*10, function(){SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
+    game.time.events.loop(Phaser.Timer.SECOND*10, () => {SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
     enemyTimer = game.time.create();
-    enemyTimer.loop(Phaser.Timer.SECOND, function(){semiCircle(Math.random()*2)});
-    enemyTimer.loop(Phaser.Timer.SECOND*1.5, function(){
+    enemyTimer.loop(Phaser.Timer.SECOND, () => {semiCircle(Math.random()*2)});
+    enemyTimer.loop(Phaser.Timer.SECOND*1.5, () => {
         singleEnemy(Math.random()*2); //2 single enemies because 2 semiCircles causes performance issues
         singleEnemy(Math.random()*2)
     });
     enemyTimer.start();
     //setInterval(function(){halfCircle(Math.random()*2)},2000)
-    game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, function(){almostFullCircle(Math.random()*2)}, 600);
+    game.time.events.loop(Phaser.Timer.SECOND*6.3, inbetweenPauses, null, () => {almostFullCircle(Math.random()*2)}, 600);
 }
 
 function enemyChallengeTest1(){ //full circles quarter-interval gaps (not that interesting)
@@ -148,7 +142,7 @@ function enemyChallengeTest4(){ //alternating gaps
 //////////////////////////////////////////////////////////////
 
 
-var despawnOldestEnemyGroup = function(){
+function despawnOldestEnemyGroup(){
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
         var aEnemy = allEnemies[oldestEnemy].children[0]; //get an arbitrary enemy from the oldest surviving group (first to die)
         if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < despawnDistance){
@@ -156,11 +150,11 @@ var despawnOldestEnemyGroup = function(){
             if(++oldestEnemy > MAXENEMIES-1) oldestEnemy = 0;
         }
     }
-}
+};
 
 function flashOrange(){
         game.stage.backgroundColor = '#FFA07A';
-        setTimeout(function(){game.stage.backgroundColor = '#FFFFFF';},100);
+        setTimeout(() => {game.stage.backgroundColor = '#FFFFFF';},100);
 }
 
 function dim(alpha){
@@ -186,7 +180,7 @@ function collisionCheck(){
     //sprite.rotation flips to - and decreases when up top.  why? idk....
     var spriteRad = player.rotation < 0 ? 2*Math.PI+player.rotation : player.rotation;
 
-    allEnemies[oldestEnemy].forEach(function(enemy){ //if there's many groups next to circle taking just oldestEnemy will fail.  But for now it works
+    allEnemies[oldestEnemy].forEach(enemy => { //if there's many groups next to circle taking just oldestEnemy will fail.  But for now it works
 
         //rotation can be any value, but we want a value between 0 and 2pi radians
         var numRotations = Math.floor(enemy.rad/(2*Math.PI));
@@ -223,10 +217,10 @@ function create() {
     //setting size to body width to avoid scrollbar appearing
     game.scale.setGameSize($('body').width(), window.innerHeight);
     radius = Math.max(this.game.width, this.game.height)/2 + 20; //20 is arbitrary number so enemies are generated outside screen
-    game.onPause.add(function(){
+    game.onPause.add(() => {
         if(musicEnabled) soundInstance.paused = true;
     })
-    game.onResume.add(function(){
+    game.onResume.add(() => {
         if(musicEnabled) soundInstance.paused = false;
     })
 
@@ -266,7 +260,7 @@ function create() {
     enemyTweenSmall = game.add.tween(enemies.scale).to({x: 1.1, y: 1.1});
     enemyTween.timeScale = 2;
     enemyTweenSmall.timeScale = 2;
-    enemyTween.onComplete.add(function(){enemyTweenSmall.start();});
+    enemyTween.onComplete.add(() => {enemyTweenSmall.start();});
 
     //DEBUG DOTS
     //game.add.sprite(game.world.centerX, game.world.centerY, 'dot'); //center

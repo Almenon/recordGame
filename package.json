@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node --inspect ./bin/www",
-    "lint": "eslint public/js/*.js --ignore-pattern public/js/*.min.js || exit 0"
+    "lint": "eslint public/js/*.js --ignore-pattern public/js/*.min.js || exit 0",
+    "build": "babel public/js/app.js -d babel"
   },
   "description": "phaser game",
   "dependencies": {
@@ -18,5 +19,9 @@
     "jquery": "^3.1.1",
     "jquery-ui": "^1.12.1",
     "socket.io": "~1.7.3"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-env": "^1.3.3"
   }
 }

@@ -42,7 +42,7 @@ function spawnEnemies(start=1, end){
 
 // start: radians.  default is 1 (left center)
 function singleEnemy(start = 1){
-    spawnEnemies(start,start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
+    spawnEnemies(start, start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
 }
 
 // start: radians.  default is 1 (left center)
@@ -75,7 +75,6 @@ function inbetweenPauses(func, wait){
 
 //function hardChallenge(){
 //    hardChallenges[Math.random()*hardChallenges.length]
-//
 //}
 
 function start(){
@@ -89,7 +88,7 @@ function start(){
 }
 
 function setUpEnemySpawning(){
-    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell colission checking code is not up to this task.  also sometimes there are blank bugs
+    //setInterval(function(){singleEnemy(Math.random()*2)},50) //bug swarm - you can tell collision checking code is not up to this task.  also sometimes there are blank bugs
     //There are several issues that need to be addressed:
     // 1. sometimes there are impossible scenarios (solution: keep track of degree coverage.  Problem: there could be 100% degree coverage but still escape routes inbetween arcs
     game.time.events.loop(Phaser.Timer.SECOND*10, () => {SPEED = SPEED/1.15}); //slowly increase difficulty by lowering (raising) speed
@@ -141,7 +140,9 @@ function enemyChallengeTest4(){ //alternating gaps
 /// COLLISION CODE (called by Phaser update)
 //////////////////////////////////////////////////////////////
 
-
+/**
+ * @description removes oldest enemy group if it has gone into record
+ */
 function despawnOldestEnemyGroup(){
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
         var aEnemy = allEnemies[oldestEnemy].children[0]; //get an arbitrary enemy from the oldest surviving group (first to die)
@@ -152,17 +153,28 @@ function despawnOldestEnemyGroup(){
     }
 };
 
-function flashOrange(){
+/**
+ * flashes orange for duration of time ms
+ * @param {number} time 
+ */
+function flashOrange(time=100){
         game.stage.backgroundColor = '#FFA07A';
-        setTimeout(() => {game.stage.backgroundColor = '#FFFFFF';},100);
+        setTimeout(() => {game.stage.backgroundColor = '#FFFFFF';},time);
 }
 
+/**
+ * @summary dims gameWorld by creating a black sprite with alpha transparency
+ * @param {number} alpha 
+ */
 function dim(alpha){
         var dim = game.add.sprite(0,0,'black')
         dim.width = game.world.width; dim.height = game.world.height;
         dim.alpha = alpha;
 }
 
+/**
+ * @summary Pauses phaser and displays game over text
+ */
 function endGame(){
     if(l33tHax) flashOrange();
     else{
@@ -175,6 +187,9 @@ function endGame(){
     }
 }
 
+/**
+ * @summary ends game if player collides with enemy
+ */
 function collisionCheck(){
 
     //sprite.rotation flips to - and decreases when up top.  why? idk....
@@ -307,7 +322,7 @@ function render() {
 
 }
 
-
+//todo: make fullscreen button
 function fullScreenSwitch() {
     if (game.scale.isFullScreen)
     {

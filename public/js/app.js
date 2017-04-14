@@ -24,7 +24,7 @@ var enemies;
 //////////////////////////////////////////////////////////////
 
 /**
- * @description removes oldest enemy group if it has gone into record
+ * @summary removes oldest enemy group if it has gone into record
  */
 function despawnOldestEnemyGroup(){
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
@@ -97,7 +97,10 @@ function collisionCheck(){
 /// ENEMY SPAWNING CODE
 //////////////////////////////////////////////////////////////
 
-// start: radians.  default is 1 (left center)
+/**
+ * 
+ * @param {number} start - radians. Will be multipled by PI
+ */
 function spawnEnemies(start=1, end){
     if(end == null) end = start+.5; //end defaults to start+.5 for 45 degree arc
 
@@ -115,22 +118,34 @@ function spawnEnemies(start=1, end){
     }
 }
 
-// start: radians.  default is 1 (left center)
+/**
+ * 
+ * @param {number} start - radians. Will be multipled by PI
+ */
 function singleEnemy(start = 1){
     spawnEnemies(start, start+NUMBERENEMIES/2); //numberenemies/2 so spawnEnemies will just increment once
 }
 
-// start: radians.  default is 1 (left center)
+/**
+ * 
+ * @param {number} start - radians. Will be multipled by PI
+ */
 function semiCircle(start = 1){
     spawnEnemies(start,start+.5);
 }
 
-// start: radians.  default is 1 (left center)
+/**
+ * 
+ * @param {number} start - radians. Will be multipled by PI
+ */
 function halfCircle(start = 1){
     spawnEnemies(start,start+1);
 }
 
-// start: radians.  default is 1 (left center)
+/**
+ * 
+ * @param {number} start - radians. Will be multipled by PI
+ */
 function almostFullCircle(start = 1){
     spawnEnemies(start,start+1.7);
 }

@@ -11,6 +11,7 @@ var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups o
 var currentEnemyGroup = 0;
 var oldestEnemy = 0;
 var SPEED = 5; //lower the faster
+var playerAcceleration = 40;
 var collisionDistance;
 var despawnDistance;
 var l33tHax = false; //allows you to survive death
@@ -271,8 +272,8 @@ function create() {
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
     //  We'll set a lower max angular velocity here to keep it from going totally nuts
-    player.body.maxAngular = 400;
-    player.body.maxVelocity = 400;
+    //  this property isn't 100% accurate - in testing max is maxAngular + playerAcceleration
+    player.body.maxAngular = 400; 
     //  Apply a drag otherwise the sprite will just spin and never slow down
     player.body.angularDrag = 900;
 
@@ -288,11 +289,11 @@ function create() {
 
     //TWEENS: (doesn't work atm)
     //enemyTweenCenter = game.add.tween(enemies.position).to({x: -enemies.width, y: -enemies.height});
-    enemyTween = game.add.tween(enemies.scale).to({x: 2, y: 2});
-    enemyTweenSmall = game.add.tween(enemies.scale).to({x: 1.1, y: 1.1});
-    enemyTween.timeScale = 2;
-    enemyTweenSmall.timeScale = 2;
-    enemyTween.onComplete.add(() => {enemyTweenSmall.start();});
+    // enemyTween = game.add.tween(enemies.scale).to({x: 2, y: 2});
+    // enemyTweenSmall = game.add.tween(enemies.scale).to({x: 1.1, y: 1.1});
+    // enemyTween.timeScale = 2;
+    // enemyTweenSmall.timeScale = 2;
+    // enemyTween.onComplete.add(() => {enemyTweenSmall.start();});
 
     //DEBUG DOTS
     //game.add.sprite(game.world.centerX, game.world.centerY, 'dot'); //center
@@ -309,34 +310,40 @@ function update() { //fps is 60, so should complete within 16 ms
 
     despawnOldestEnemyGroup();
     collisionCheck();
+    playerMovement2();
 
-    //  Apply acceleration if the left/right arrow keys are held down
-    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
-    {
-        //sprite.body.angularAcceleration -= 200;
-        player.body.angularVelocity -= 50;
-        //sprite.rotation += .01;
-    }
-    else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT))
-    {
-        //sprite.body.angularAcceleration += 200;
-        player.body.angularVelocity += 50;
-        //sprite.rotation -= .01;
-    }
 }
 
 function render() {
     //game.debug.text(game.time.fps, 2, 14, "#00ff00"); //the FPS is not good on slow devices ~ 30-60.  Maybe lock it to 30 on slow devices for consistent fps?
     //game.debug.text(Math.floor(gameTime.seconds),2,14);
     //game.debug.cameraInfo(game.camera, 32, 32);
-    //game.debug.bodyInfo(sprite, 32, 32);
+    //game.debug.bodyInfo(player, 32, 32);
     //game.debug.body(record);
-    //game.debug.spriteInfo(sprite, 32, 32);
-    //game.debug.text('angularVelocity: ' + sprite.body.angularVelocity, 32, 200);
-    //game.debug.text('angularAcceleration: ' + sprite.body.angularAcceleration, 32, 232);
-    //game.debug.text('angularDrag: ' + sprite.body.angularDrag, 32, 264);
-    //game.debug.text('deltaZ: ' + sprite.body.deltaZ(), 32, 296);
+    //game.debug.spriteInfo(player, 32, 32);
+    //game.debug.text('angularVelocity: ' + player.body.angularVelocity, 32, 200);
+    //game.debug.text('angularAcceleration: ' + player.body.angularAcceleration, 32, 232);
+    //game.debug.text('angularDrag: ' + player.body.angularDrag, 32, 264);
+    //game.debug.text('deltaZ: ' + player.body.deltaZ(), 32, 296);
 
+}
+
+/**
+ * @summary movement with acceleration up to 450.
+ */
+function playerMovement1(){
+    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) player.body.angularVelocity -= playerAcceleration;
+    else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) player.body.angularVelocity += playerAcceleration;
+}
+
+/**
+ * @summary movement with static velocity.  You feel more in control than with acceleration but movement is less smooth and player is incapable of small movements
+ */
+function playerMovement2(){
+    //  Apply acceleration if the left/right arrow keys are held down
+    if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) player.body.angularVelocity =  -300;
+    else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) player.body.angularVelocity =  300;
+    else player.body.angularVelocity = 0;
 }
 
 //todo: make fullscreen button

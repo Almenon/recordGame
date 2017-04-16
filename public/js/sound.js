@@ -27,12 +27,11 @@ var dataAverage = [42, 42, 42, 42];   // an array recording data for the last 4 
 var waveImgs = []; // array of wave images with different stroke thicknesses
 var waveHit = false;
 
-musicEnabled = true; //disables sound and sound effects for testing purposes
+musicEnabled = false; //disables sound and sound effects for testing purposes
 backgroundColoringEnabled = true;
 enemyColoringEnabled = true; //disable this for performance improvement
 
 function init() {
-    if(!musicEnabled) return;
 	// Web Audio only demo, so we register just the WebAudioPlugin and if that fails, display fail message
 	if (!createjs.Sound.registerPlugins([createjs.WebAudioPlugin])) {
 		document.getElementById("error").style.display = "block";
@@ -71,6 +70,9 @@ function handleLoad(evt) {
 
 // this will start our playback in response to a user click, allowing this demo to work on mobile devices
 function startPlayback() {
+	startEnemySpawning(); //start game at same time as sound
+	if(musicLoadingMessage != undefined) musicLoadingMessage.destroy();
+	if(!musicEnabled) return;
 
 	if (soundInstance) {
 		return;

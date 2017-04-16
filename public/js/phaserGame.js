@@ -2,7 +2,13 @@
 /// PHASER FUNCS - PRELOAD, CREATE, UPDATE, RENDER
 /// see enemyCode.js for enemyCreation and collision checking
 //////////////////////////////////////////////////////////////
-var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.CANVAS, 'inner', { preload, create, update, render });
+var game = new Phaser.Game({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    renderer: Phaser.CANVAS,
+    parent: "inner",
+    state: {preload, create, update, render}
+});
 var enemyCreationDistance; //distance from center
 var enemies;
 var collisionDistance;
@@ -13,9 +19,12 @@ var gameTime; //Phaser.Timer.  use gameTime.seconds to get elapsed game time exc
 //unused vars
 var enemyTween;
 var enemyTweenSmall;
+var fontStyle = { font: "65px Arial", fill: "#ff0044", align: "center" }
+var musicLoadingMessage;
+var player;
 
 function preload() {
-    musicEnabled ? game.load.image('bug', 'images/whiteBug.png') : game.load.image('bug', 'images/bug.png');;
+    musicEnabled ? game.load.image('bug', 'images/whiteBug.png') : game.load.image('bug', 'images/bug.png');
     game.load.image('arrow', 'images/whiteArrow.png');
     game.load.image('record', 'images/record2cropped.png');
     game.load.image('dot', 'images/dot.png');
@@ -50,6 +59,7 @@ function create() {
     player.anchor.setTo(0,.5);
     player.scale.setTo(.28);
     player.enableBody = false;
+    player.tint = 0x55FA2A; //green
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
     //  We'll set a lower max angular velocity here to keep it from going totally nuts
@@ -84,7 +94,10 @@ function create() {
     //game.add.sprite(game.world.centerX-despawnDistance, game.world.centerY, 'dot'); //depsawn distance
     //game.add.sprite(game.world.centerX+despawnDistance, game.world.centerY, 'dot');
 
-    startEnemySpawning();
+    if(soundInstance == undefined){
+        musicLoadingMessage = game.add.text(game.world.centerX, game.world.centerY, "Loading Music...", fontStyle)
+        musicLoadingMessage.anchor.setTo(.5);
+    }
 }
 
 function update() { //fps is 60, so should complete within 16 ms
@@ -113,6 +126,9 @@ function render() {
 // MISC
 ///////////////////////////////////////
 
+/**
+ * called by sound.js when music loading is complete
+ */
 function startEnemySpawning(){
 
     //set up timer for scoring upon game end

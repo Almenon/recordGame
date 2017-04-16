@@ -70,8 +70,7 @@ function endGame(){
         var endTime = Math.floor(gameTime.seconds);
         game.paused = true;
         dim(.4);
-        var style = { font: "65px Arial", fill: "#ff0044", align: "center" };
-        var gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + endTime, style);
+        var gameOverText = game.add.text(game.world.centerX, game.world.centerY, "Game Over.  Refresh to Try again.  \nScore: " + endTime, fontStyle);
         gameOverText.anchor.setTo(.5);
     }
 }

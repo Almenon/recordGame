@@ -7,7 +7,7 @@
 *
 * Phaser - http://phaser.io
 *
-* v2.7.3 "2017-01-09" - Built: Mon Jan 09 2017 13:26:16
+* v2.7.6 "2017-04-13" - Built: Thu Apr 13 2017 12:04:23
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
@@ -14227,7 +14227,7 @@ PIXI.DisplayObject.prototype = {
             var textureUnit = 0;
             if (this.texture && this.texture.baseTexture && PIXI._enableMultiTextureToggle)
                 textureUnit = this.texture.baseTexture.textureIndex;
-            var renderTexture = new Phaser.RenderTexture(bounds.width, bounds.height, null, null, null, textureUnit);
+            var renderTexture = new Phaser.RenderTexture(this.game, bounds.width, bounds.height, undefined, undefined, undefined, undefined, textureUnit);
             this._cachedSprite = new PIXI.Sprite(renderTexture);
             this._cachedSprite.worldTransform = this.worldTransform;
         }
@@ -15674,6 +15674,9 @@ PIXI.Sprite.prototype._renderCanvas = function(renderSession, matrix)
     {
         var cx = this.texture.crop.x;
         var cy = this.texture.crop.y;
+        
+        cw = Math.floor(cw)
+        ch = Math.floor(ch)
 
         renderSession.context.drawImage(this.texture.baseTexture.source, cx, cy, cw, ch, dx, dy, cw / resolution, ch / resolution);
     }
@@ -21166,7 +21169,7 @@ var Phaser = Phaser || {    // jshint ignore:line
     * @constant
     * @type {string}
     */
-    VERSION: '2.7.3',
+    VERSION: '2.7.6',
 
     /**
     * An array of Phaser game instances.
@@ -21632,9 +21635,9 @@ var Phaser = Phaser || {    // jshint ignore:line
 
     /**
     * Various blend modes supported by Pixi.
-    * 
+    *
     * IMPORTANT: The WebGL renderer only supports the NORMAL, ADD, MULTIPLY and SCREEN blend modes.
-    * 
+    *
     * @constant
     * @property {Number} blendModes.NORMAL
     * @property {Number} blendModes.ADD
@@ -21856,6 +21859,39 @@ if (!window.console)
     window.console = {};
     window.console.log = window.console.assert = function(){};
     window.console.warn = window.console.assert = function(){};
+}
+
+/**
+ * Fix for Object.assign not existing on older devices
+ */
+
+if (!Object.assign) {
+    /* jshint -W098 */
+    // We include `varArgs` (unused) to ensure Object.assign.length === 2
+    Object.assign = function(target, varArgs) {
+    /* jshint +W098 */
+        'use strict';
+        if (target == null) { // TypeError if undefined or null
+            throw new TypeError('Cannot convert undefined or null to object');
+        }
+
+        var to = Object(target);
+        var hasOwn = Object.prototype.hasOwnProperty;
+
+        for (var index = 1; index < arguments.length; index++) {
+            var nextSource = arguments[index];
+
+            if (nextSource != null) { // Skip over if undefined or null
+                for (var nextKey in nextSource) {
+                    // Avoid bugs when hasOwnProperty is shadowed
+                    if (hasOwn.call(nextSource, nextKey)) {
+                        to[nextKey] = nextSource[nextKey];
+                    }
+                }
+            }
+        }
+        return to;
+    };
 }
 
 /**
@@ -27444,8 +27480,7 @@ Phaser.Camera.prototype = {
                 this._shake.x = 0;
             }
         }
-
-        if (vw >= this.bounds.right * this.scale.x)
+        else if (vw >= this.bounds.right * this.scale.x)
         {
             this.atLimit.x = true;
             this.view.x = (this.bounds.right * this.scale.x) - this.width;
@@ -27468,8 +27503,7 @@ Phaser.Camera.prototype = {
                 this._shake.y = 0;
             }
         }
-
-        if (vh >= this.bounds.bottom * this.scale.y)
+        else if (vh >= this.bounds.bottom * this.scale.y)
         {
             this.atLimit.y = true;
             this.view.y = (this.bounds.bottom * this.scale.y) - this.height;
@@ -30301,9 +30335,18 @@ Phaser.Stage.prototype.preUpdate = function () {
     this.currentRenderOrderID = 0;
 
     //  This can't loop in reverse, we need the renderOrderID to be in sequence
-    for (var i = 0; i < this.children.length; i++)
+    var i = 0;
+
+    while (i < this.children.length)
     {
-        this.children[i].preUpdate();
+        var child = this.children[i];
+
+        child.preUpdate();
+
+        if (this === child.parent)
+        {
+            i++;
+        }
     }
 
 };
@@ -30359,7 +30402,7 @@ Phaser.Stage.prototype.postUpdate = function () {
 /**
 * Updates the transforms for all objects on the display list.
 * This overrides the Pixi default as we don't need the interactionManager, but do need the game property check.
-* 
+*
 * @method Phaser.Stage#updateTransform
 */
 Phaser.Stage.prototype.updateTransform = function () {
@@ -30376,7 +30419,7 @@ Phaser.Stage.prototype.updateTransform = function () {
 /**
 * Starts a page visibility event listener running, or window.onpagehide/onpageshow if not supported by the browser.
 * Also listens for window.onblur and window.onfocus.
-* 
+*
 * @method Phaser.Stage#checkVisibility
 */
 Phaser.Stage.prototype.checkVisibility = function () {
@@ -30419,7 +30462,7 @@ Phaser.Stage.prototype.checkVisibility = function () {
 
     window.onpagehide = this._onChange;
     window.onpageshow = this._onChange;
-    
+
     if (this.game.device.cocoonJSApp)
     {
         CocoonJS.App.onSuspended.addEventListener(function () {
@@ -30435,7 +30478,7 @@ Phaser.Stage.prototype.checkVisibility = function () {
 
 /**
 * This method is called when the document visibility is changed.
-* 
+*
 * @method Phaser.Stage#visibilityChange
 * @param {Event} event - Its type will be used to decide whether the game should be paused or not.
 */
@@ -30689,10 +30732,9 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     /**
     * The type of objects that will be created when using {@link #create} or {@link #createMultiple}.
     *
-    * Any object may be used but it should extend either Sprite or Image and accept the same constructor arguments:
-    * when a new object is created it is passed the following parameters to its constructor: `(game, x, y, key, frame)`.
+    * It should extend either Sprite or Image and accept the same constructor arguments: `(game, x, y, key, frame)`.
     *
-    * @property {object} classType
+    * @property {function} classType
     * @default {@link Phaser.Sprite}
     */
     this.classType = Phaser.Sprite;
@@ -30706,11 +30748,11 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     this.cursor = null;
 
     /**
-    * A Group with `inputEnableChildren` set to `true` will automatically call `inputEnabled = true` 
+    * A Group with `inputEnableChildren` set to `true` will automatically call `inputEnabled = true`
     * on any children _added_ to, or _created by_, this Group.
-    * 
+    *
     * If there are children already in the Group at the time you set this property, they are not changed.
-    * 
+    *
     * @property {boolean} inputEnableChildren
     * @default
     */
@@ -30720,10 +30762,10 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     * This Signal is dispatched whenever a child of this Group emits an onInputDown signal as a result
     * of having been interacted with by a Pointer. You can bind functions to this Signal instead of to
     * every child Sprite.
-    * 
+    *
     * This Signal is sent 2 arguments: A reference to the Sprite that triggered the signal, and
     * a reference to the Pointer that caused it.
-    * 
+    *
     * @property {Phaser.Signal} onChildInputDown
     */
     this.onChildInputDown = new Phaser.Signal();
@@ -30732,11 +30774,11 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     * This Signal is dispatched whenever a child of this Group emits an onInputUp signal as a result
     * of having been interacted with by a Pointer. You can bind functions to this Signal instead of to
     * every child Sprite.
-    * 
-    * This Signal is sent 3 arguments: A reference to the Sprite that triggered the signal, 
+    *
+    * This Signal is sent 3 arguments: A reference to the Sprite that triggered the signal,
     * a reference to the Pointer that caused it, and a boolean value `isOver` that tells you if the Pointer
     * is still over the Sprite or not.
-    * 
+    *
     * @property {Phaser.Signal} onChildInputUp
     */
     this.onChildInputUp = new Phaser.Signal();
@@ -30745,10 +30787,10 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     * This Signal is dispatched whenever a child of this Group emits an onInputOver signal as a result
     * of having been interacted with by a Pointer. You can bind functions to this Signal instead of to
     * every child Sprite.
-    * 
+    *
     * This Signal is sent 2 arguments: A reference to the Sprite that triggered the signal, and
     * a reference to the Pointer that caused it.
-    * 
+    *
     * @property {Phaser.Signal} onChildInputOver
     */
     this.onChildInputOver = new Phaser.Signal();
@@ -30757,10 +30799,10 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     * This Signal is dispatched whenever a child of this Group emits an onInputOut signal as a result
     * of having been interacted with by a Pointer. You can bind functions to this Signal instead of to
     * every child Sprite.
-    * 
+    *
     * This Signal is sent 2 arguments: A reference to the Sprite that triggered the signal, and
     * a reference to the Pointer that caused it.
-    * 
+    *
     * @property {Phaser.Signal} onChildInputOut
     */
     this.onChildInputOut = new Phaser.Signal();
@@ -30795,8 +30837,8 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     /**
     * If this Group contains Arcade Physics Sprites you can set a custom sort direction via this property.
     *
-    * It should be set to one of the Phaser.Physics.Arcade sort direction constants: 
-    * 
+    * It should be set to one of the Phaser.Physics.Arcade sort direction constants:
+    *
     * Phaser.Physics.Arcade.SORT_NONE
     * Phaser.Physics.Arcade.LEFT_RIGHT
     * Phaser.Physics.Arcade.RIGHT_LEFT
@@ -30804,7 +30846,7 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
     * Phaser.Physics.Arcade.BOTTOM_TOP
     *
     * If set to `null` the Group will use whatever Phaser.Physics.Arcade.sortDirection is set to. This is the default behavior.
-    * 
+    *
     * @property {integer} physicsSortDirection
     * @default
     */
@@ -30824,10 +30866,10 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
 
     /**
     * A Group that is fixed to the camera uses its x/y coordinates as offsets from the top left of the camera. These are stored in Group.cameraOffset.
-    * 
+    *
     * Note that the cameraOffset values are in addition to any parent in the display list.
     * So if this Group was in a Group that has x: 200, then this will be added to the cameraOffset.x
-    * 
+    *
     * @property {boolean} fixedToCamera
     */
     this.fixedToCamera = false;
@@ -30841,13 +30883,13 @@ Phaser.Group = function (game, parent, name, addToStage, enableBody, physicsBody
 
     /**
     * The hash array is an array belonging to this Group into which you can add any of its children via Group.addToHash and Group.removeFromHash.
-    * 
+    *
     * Only children of this Group can be added to and removed from the hash.
-    * 
+    *
     * This hash is used automatically by Phaser Arcade Physics in order to perform non z-index based destructive sorting.
     * However if you don't use Arcade Physics, or this isn't a physics enabled Group, then you can use the hash to perform your own
     * sorting and filtering of Group children without touching their z-index (and therefore display draw order)
-    * 
+    *
     * @property {array} hash
     */
     this.hash = [];
@@ -30911,7 +30953,7 @@ Phaser.Group.SORT_DESCENDING = 1;
 *
 * The child is automatically added to the top of the group, and is displayed above every previous child.
 *
-* Or if the _optional_ index is specified, the child is added at the location specified by the index value, 
+* Or if the _optional_ index is specified, the child is added at the location specified by the index value,
 * this allows you to control child ordering.
 *
 * If the child was already in this Group, it is simply returned, and nothing else happens to it.
@@ -30987,7 +31029,7 @@ Phaser.Group.prototype.add = function (child, silent, index) {
 * Adds an existing object to this group.
 *
 * The child is added to the group at the location specified by the index value, this allows you to control child ordering.
-* 
+*
 * If `Group.enableBody` is set, then a physics body will be created on the object, so long as one does not already exist.
 *
 * If `Group.inputEnableChildren` is set, then an Input Handler will be created on the object, so long as one does not already exist.
@@ -31061,7 +31103,7 @@ Phaser.Group.prototype.removeFromHash = function (child) {
 *
 * As well as an array you can also pass another Group as the first argument. In this case all of the children from that
 * Group will be removed from it and added into this Group.
-* 
+*
 * If `Group.enableBody` is set, then a physics body will be created on the objects, so long as one does not already exist.
 *
 * If `Group.inputEnableChildren` is set, then an Input Handler will be created on the objects, so long as one does not already exist.
@@ -31113,12 +31155,12 @@ Phaser.Group.prototype.getAt = function (index) {
 * Creates a new Phaser.Sprite object and adds it to the top of this group.
 *
 * Use {@link #classType} to change the type of object created.
-* 
+*
 * The child is automatically added to the top of the group, and is displayed above every previous child.
 *
-* Or if the _optional_ index is specified, the child is added at the location specified by the index value, 
+* Or if the _optional_ index is specified, the child is added at the location specified by the index value,
 * this allows you to control child ordering.
-* 
+*
 * If `Group.enableBody` is set, then a physics body will be created on the object, so long as one does not already exist.
 *
 * If `Group.inputEnableChildren` is set, then an Input Handler will be created on the object, so long as one does not already exist.
@@ -31148,16 +31190,16 @@ Phaser.Group.prototype.create = function (x, y, key, frame, exists, index) {
 
 /**
 * Creates multiple Phaser.Sprite objects and adds them to the top of this Group.
-* 
+*
 * This method is useful if you need to quickly generate a pool of sprites, such as bullets.
 *
 * Use {@link #classType} to change the type of object created.
 *
 * You can provide an array as the `key` and / or `frame` arguments. When you do this
 * it will create `quantity` Sprites for every key (and frame) in the arrays.
-* 
+*
 * For example:
-* 
+*
 * `createMultiple(25, ['ball', 'carrot'])`
 *
 * In the above code there are 2 keys (ball and carrot) which means that 50 sprites will be
@@ -31179,9 +31221,9 @@ Phaser.Group.prototype.create = function (x, y, key, frame, exists, index) {
 * It will then create 20 'balls' of frame 0, 20 with frame 1 and 20 with frame 2.
 * In total it will have created 120 sprites.
 *
-* By default the Sprites will have their `exists` property set to `false`, and they will be 
+* By default the Sprites will have their `exists` property set to `false`, and they will be
 * positioned at 0x0, relative to the `Group.x / y` values.
-* 
+*
 * If `Group.enableBody` is set, then a physics body will be created on the objects, so long as one does not already exist.
 *
 * If `Group.inputEnableChildren` is set, then an Input Handler will be created on the objects, so long as one does not already exist.
@@ -31262,7 +31304,7 @@ Phaser.Group.prototype.updateZ = function () {
 *
 * This will align all of the children into a grid formation of 10x10, using 32 pixels per
 * grid cell. If you want a wider grid, you could do:
-* 
+*
 * `Group.align(25, 4, 32, 32)`
 *
 * This will align the children into a grid of 25x4, again using 32 pixels per grid cell.
@@ -31273,19 +31315,19 @@ Phaser.Group.prototype.updateZ = function () {
 *
 * `Group.align(-1, 8, 32, 32)`
 *
-* ... will align the children so that there are 8 children vertically (the second argument), 
+* ... will align the children so that there are 8 children vertically (the second argument),
 * and each row will contain 6 sprites, except the last one, which will contain 5 (totaling 48)
 *
 * You can also do:
-* 
+*
 * `Group.align(10, -1, 32, 32)`
 *
 * In this case it will create a grid 10 wide, and as tall as it needs to be in order to fit
 * all of the children in.
 *
 * The `position` property allows you to control where in each grid cell the child is positioned.
-* This is a constant and can be one of `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`, 
-* `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`, `Phaser.CENTER`, `Phaser.RIGHT_CENTER`, 
+* This is a constant and can be one of `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`,
+* `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`, `Phaser.CENTER`, `Phaser.RIGHT_CENTER`,
 * `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` or `Phaser.BOTTOM_RIGHT`.
 *
 * The final argument; `offset` lets you start the alignment from a specific child index.
@@ -31959,8 +32001,8 @@ Phaser.Group.prototype.checkAll = function (key, value, checkAlive, checkVisible
 * @method Phaser.Group#addAll
 * @param {string} property - The property to increment, for example 'body.velocity.x' or 'angle'.
 * @param {number} amount - The amount to increment the property by. If child.x = 10 then addAll('x', 40) would make child.x = 50.
-* @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
-* @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
+* @param {boolean} [checkAlive] - If true the property will only be changed if the child is alive.
+* @param {boolean} [checkVisible] - If true the property will only be changed if the child is visible.
 */
 Phaser.Group.prototype.addAll = function (property, amount, checkAlive, checkVisible) {
 
@@ -32195,9 +32237,19 @@ Phaser.Group.prototype.preUpdate = function () {
         return false;
     }
 
-    for (var i = 0; i < this.children.length; i++)
+    // This can't loop in reverse, we need the renderOrderID to be in sequence
+    var i = 0;
+
+    while (i < this.children.length)
     {
-        this.children[i].preUpdate();
+        var child = this.children[i];
+
+        child.preUpdate();
+
+        if (this === child.parent)
+        {
+            i++;
+        }
     }
 
     return true;
@@ -32216,6 +32268,9 @@ Phaser.Group.prototype.update = function () {
 
     while (i--)
     {
+        if (i >= this.children.length){
+            i = this.children.length - 1;
+        }
         this.children[i].update();
     }
 
@@ -32424,7 +32479,7 @@ Phaser.Group.prototype.forEachDead = function (callback, callbackContext) {
 * Sort the children in the group according to a particular key and ordering.
 *
 * Call this function to sort the group according to a particular key value and order.
-* 
+*
 * For example to depth sort Sprites for Zelda-style game you might call `group.sort('y', Phaser.Group.SORT_ASCENDING)` at the bottom of your `State.update()`.
 *
 * Internally this uses a standard JavaScript Array sort, so everything that applies there also applies here, including
@@ -32638,7 +32693,7 @@ Phaser.Group.prototype.iterate = function (key, value, returnType, callback, cal
 
 /**
 * Get the first display object that exists, or doesn't exist.
-* 
+*
 * You can use the optional argument `createIfNull` to create a new Game Object if none matching your exists argument were found in this Group.
 *
 * It works by calling `Group.create` passing it the parameters given to this method, and returning the new child.
@@ -32812,7 +32867,7 @@ Phaser.Group.prototype.getBottom = function () {
 *
 * You can use the optional `callback` argument to apply your own filter to the distance checks.
 * If the child is closer then the previous child, it will be sent to `callback` as the first argument,
-* with the distance as the second. The callback should return `true` if it passes your 
+* with the distance as the second. The callback should return `true` if it passes your
 * filtering criteria, otherwise it should return `false`.
 *
 * @method Phaser.Group#getClosestTo
@@ -32856,7 +32911,7 @@ Phaser.Group.prototype.getClosestTo = function (object, callback, callbackContex
 *
 * You can use the optional `callback` argument to apply your own filter to the distance checks.
 * If the child is closer then the previous child, it will be sent to `callback` as the first argument,
-* with the distance as the second. The callback should return `true` if it passes your 
+* with the distance as the second. The callback should return `true` if it passes your
 * filtering criteria, otherwise it should return `false`.
 *
 * @method Phaser.Group#getFurthestFrom
@@ -33077,7 +33132,7 @@ Phaser.Group.prototype.moveAll = function (group, silent) {
 * Removes all children from this Group, but does not remove the group from its parent.
 *
 * The children can be optionally destroyed as they are removed.
-* 
+*
 * You can also optionally also destroy the BaseTexture the Child is using. Be careful if you've
 * more than one Game Object sharing the same BaseTexture.
 *
@@ -33234,7 +33289,7 @@ Object.defineProperty(Phaser.Group.prototype, "total", {
 * Total number of children in this group, regardless of exists/alive status.
 *
 * @name Phaser.Group#length
-* @property {integer} length 
+* @property {integer} length
 * @readonly
 */
 Object.defineProperty(Phaser.Group.prototype, "length", {
@@ -33275,7 +33330,7 @@ Object.defineProperty(Phaser.Group.prototype, "angle", {
 *
 * It is derived by calling `getBounds`, calculating the Groups dimensions based on its
 * visible children.
-* 
+*
 * @name Phaser.Group#centerX
 * @property {number} centerX
 */
@@ -33303,7 +33358,7 @@ Object.defineProperty(Phaser.Group.prototype, "centerX", {
 *
 * It is derived by calling `getBounds`, calculating the Groups dimensions based on its
 * visible children.
-* 
+*
 * @name Phaser.Group#centerY
 * @property {number} centerY
 */
@@ -33331,7 +33386,7 @@ Object.defineProperty(Phaser.Group.prototype, "centerY", {
 *
 * It is derived by calling `getBounds`, calculating the Groups dimensions based on its
 * visible children.
-* 
+*
 * @name Phaser.Group#left
 * @property {number} left
 */
@@ -33415,7 +33470,7 @@ Object.defineProperty(Phaser.Group.prototype, "top", {
 *
 * It is derived by calling `getBounds`, calculating the Groups dimensions based on its
 * visible children.
-* 
+*
 * @name Phaser.Group#bottom
 * @property {number} bottom
 */
@@ -33443,17 +33498,17 @@ Object.defineProperty(Phaser.Group.prototype, "bottom", {
 * 'container', to one of 9 possible positions.
 *
 * The container must be a Game Object, or Phaser.Rectangle object. This can include properties
-* such as `World.bounds` or `Camera.view`, for aligning Groups within the world 
+* such as `World.bounds` or `Camera.view`, for aligning Groups within the world
 * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
 * TileSprites or Buttons.
 *
 * Please note that aligning a Group to another Game Object does **not** make it a child of
 * the container. It simply modifies its position coordinates so it aligns with it.
-* 
+*
 * The position constants you can use are:
-* 
-* `Phaser.TOP_LEFT`, `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`, 
-* `Phaser.CENTER`, `Phaser.RIGHT_CENTER`, `Phaser.BOTTOM_LEFT`, 
+*
+* `Phaser.TOP_LEFT`, `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`,
+* `Phaser.CENTER`, `Phaser.RIGHT_CENTER`, `Phaser.BOTTOM_LEFT`,
 * `Phaser.BOTTOM_CENTER` and `Phaser.BOTTOM_RIGHT`.
 *
 * Groups are placed in such a way that their _bounds_ align with the
@@ -33485,18 +33540,18 @@ Object.defineProperty(Phaser.Group.prototype, "bottom", {
 * 'parent', in one of 11 possible positions.
 *
 * The parent must be a Game Object, or Phaser.Rectangle object. This can include properties
-* such as `World.bounds` or `Camera.view`, for aligning Groups within the world 
+* such as `World.bounds` or `Camera.view`, for aligning Groups within the world
 * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
 * TileSprites or Buttons.
 *
 * Please note that aligning a Group to another Game Object does **not** make it a child of
 * the parent. It simply modifies its position coordinates so it aligns with it.
-* 
+*
 * The position constants you can use are:
-* 
-* `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_TOP`, 
-* `Phaser.LEFT_CENTER`, `Phaser.LEFT_BOTTOM`, `Phaser.RIGHT_TOP`, `Phaser.RIGHT_CENTER`, 
-* `Phaser.RIGHT_BOTTOM`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` 
+*
+* `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_TOP`,
+* `Phaser.LEFT_CENTER`, `Phaser.LEFT_BOTTOM`, `Phaser.RIGHT_TOP`, `Phaser.RIGHT_CENTER`,
+* `Phaser.RIGHT_BOTTOM`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER`
 * and `Phaser.BOTTOM_RIGHT`.
 *
 * Groups are placed in such a way that their _bounds_ align with the
@@ -33973,7 +34028,7 @@ Object.defineProperty(Phaser.World.prototype, "randomY", {
 * game.state.add('MainMenu', BasicGame.MainMenu);
 * game.state.add('Game', BasicGame.Game);
 * game.state.start('Boot');
-* 
+*
 * ```
 * In the example above, 4 States are added to the State Manager, and Phaser is told to
 * start running the `Boot` state when it has finished initializing. There are example
@@ -34094,7 +34149,7 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     * Configuration object with the property `multiTexture` set to true. It has to be enabled before
     * Pixi boots, and cannot be changed after the game is running. Once enabled, take advantage of it
     * via the `game.renderer.setTexturePriority` method.
-    * 
+    *
     * @property {boolean} multiTexture
     * @default
     * @readOnly
@@ -34122,7 +34177,7 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     this.renderer = null;
 
     /**
-    * @property {number} renderType - The Renderer this game will use. Either Phaser.AUTO, Phaser.CANVAS, Phaser.WEBGL, Phaser.WEBGL_MULTI or Phaser.HEADLESS.
+    * @property {number} renderType - The Renderer this game will use. Either Phaser.AUTO, Phaser.CANVAS, Phaser.WEBGL, Phaser.WEBGL_MULTI or Phaser.HEADLESS. After the game boots, renderType reflects the renderer in use: AUTO changes to CANVAS or WEBGL and WEBGL_MULTI changes to WEBGL. HEADLESS skips `render` hooks but not `preRender` or `postRender`; set {@link lockRender} to skip those as well.
     * @readonly
     */
     this.renderType = Phaser.AUTO;
@@ -34219,7 +34274,7 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     * @property {Phaser.Physics} physics - Reference to the physics manager.
     */
     this.physics = null;
-    
+
     /**
     * @property {Phaser.PluginManager} plugins - Reference to the plugin manager.
     */
@@ -34708,12 +34763,13 @@ Phaser.Game.prototype = {
         {
             if (this.device.canvas)
             {
-                //  They requested Canvas and their browser supports it
-                this.renderType = Phaser.CANVAS;
-
                 this.renderer = new PIXI.CanvasRenderer(this);
 
                 this.context = this.renderer.context;
+
+                if (this.renderType === Phaser.AUTO) {
+                    this.renderType = Phaser.CANVAS;
+                }
             }
             else
             {
@@ -34747,7 +34803,7 @@ Phaser.Game.prototype = {
         if (this.renderType !== Phaser.HEADLESS)
         {
             this.stage.smoothed = this.antialias;
-            
+
             Phaser.Canvas.addToDOM(this.canvas, this.parent, false);
             Phaser.Canvas.setTouchAction(this.canvas);
         }
@@ -34925,7 +34981,7 @@ Phaser.Game.prototype = {
         {
             // Scaling and device orientation changes are still reflected when paused.
             this.scale.pauseUpdate();
-            this.state.pauseUpdate();
+            this.state.pauseUpdate(timeStep);
             this.debug.preUpdate();
         }
 
@@ -35205,11 +35261,11 @@ Object.defineProperty(Phaser.Game.prototype, "paused", {
 });
 
 /**
- * 
+ *
  * "Deleted code is debugged code." - Jeff Sickel
  *
  * ヽ(〃＾▽＾〃)ﾉ
- * 
+ *
 */
 
 /**
@@ -35636,7 +35692,12 @@ Phaser.Input.prototype = {
         this.hitContext = this.hitCanvas.getContext('2d');
 
         this.mouse.start();
-        this.touch.start();
+        if (!this.game.device.mspointer)
+        {
+            // Chrome >= 55 fires both PointerEvent and TouchEvent.
+            // Pick only one.
+            this.touch.start();
+        }
         this.mspointer.start();
         this.mousePointer.active = true;
 
@@ -35864,7 +35925,7 @@ Phaser.Input.prototype = {
 
         if (this.game.canvas.style.cursor !== 'none')
         {
-            this.game.canvas.style.cursor = 'inherit';
+            this.game.canvas.style.cursor = '';
         }
 
         if (hard)
@@ -37915,10 +37976,10 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Mouse or Pen / Stylus then you can access its left button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
-    * 
+    *
     * @property {Phaser.DeviceButton} leftButton
     * @default
     */
@@ -37926,12 +37987,12 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Mouse or Pen / Stylus then you can access its middle button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
     *
     * Please see the DeviceButton docs for details on browser button limitations.
-    * 
+    *
     * @property {Phaser.DeviceButton} middleButton
     * @default
     */
@@ -37939,12 +38000,12 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Mouse or Pen / Stylus then you can access its right button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
     *
     * Please see the DeviceButton docs for details on browser button limitations.
-    * 
+    *
     * @property {Phaser.DeviceButton} rightButton
     * @default
     */
@@ -37952,12 +38013,12 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Mouse or Pen / Stylus then you can access its X1 (back) button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
     *
     * Please see the DeviceButton docs for details on browser button limitations.
-    * 
+    *
     * @property {Phaser.DeviceButton} backButton
     * @default
     */
@@ -37965,12 +38026,12 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Mouse or Pen / Stylus then you can access its X2 (forward) button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
     *
     * Please see the DeviceButton docs for details on browser button limitations.
-    * 
+    *
     * @property {Phaser.DeviceButton} forwardButton
     * @default
     */
@@ -37978,12 +38039,12 @@ Phaser.Pointer = function (game, id, pointerMode) {
 
     /**
     * If this Pointer is a Pen / Stylus then you can access its eraser button directly through this property.
-    * 
+    *
     * The DeviceButton has its own properties such as `isDown`, `duration` and methods like `justReleased` for more fine-grained
     * button control.
     *
     * Please see the DeviceButton docs for details on browser button limitations.
-    * 
+    *
     * @property {Phaser.DeviceButton} eraserButton
     * @default
     */
@@ -38174,7 +38235,7 @@ Phaser.Pointer = function (game, id, pointerMode) {
     * @property {Phaser.Point} positionDown - A Phaser.Point object containing the x/y values of the pointer when it was last in a down state on the display.
     */
     this.positionDown = new Phaser.Point();
-    
+
     /**
     * @property {Phaser.Point} positionUp - A Phaser.Point object containing the x/y values of the pointer when it was last released.
     */
@@ -38259,7 +38320,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * Resets the states of all the button booleans.
-    * 
+    *
     * @method Phaser.Pointer#resetButtons
     * @protected
     */
@@ -38282,7 +38343,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * Called by updateButtons.
-    * 
+    *
     * @method Phaser.Pointer#processButtonsDown
     * @private
     * @param {integer} buttons - The DOM event.buttons property.
@@ -38301,7 +38362,7 @@ Phaser.Pointer.prototype = {
         {
             this.rightButton.start(event);
         }
-                
+
         if (Phaser.Pointer.MIDDLE_BUTTON & buttons)
         {
             this.middleButton.start(event);
@@ -38326,7 +38387,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * Called by updateButtons.
-    * 
+    *
     * @method Phaser.Pointer#processButtonsUp
     * @private
     * @param {integer} buttons - The DOM event.buttons property.
@@ -38345,7 +38406,7 @@ Phaser.Pointer.prototype = {
         {
             this.rightButton.stop(event);
         }
-                
+
         if (button === Phaser.Mouse.MIDDLE_BUTTON)
         {
             this.middleButton.stop(event);
@@ -38371,7 +38432,7 @@ Phaser.Pointer.prototype = {
     /**
     * Called when the event.buttons property changes from zero.
     * Contains a button bitmask.
-    * 
+    *
     * @method Phaser.Pointer#updateButtons
     * @protected
     * @param {MouseEvent} event - The DOM event.
@@ -38552,7 +38613,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * Called when the Pointer is moved.
-    * 
+    *
     * @method Phaser.Pointer#move
     * @param {MouseEvent|PointerEvent|TouchEvent} event - The event passed up from the input handler.
     * @param {boolean} [fromClick=false] - Was this called from the click event?
@@ -38617,12 +38678,6 @@ Phaser.Pointer.prototype = {
 
         this.withinGame = this.game.scale.bounds.contains(this.pageX, this.pageY);
 
-        //  If the game is paused we don't process any target objects or callbacks
-        if (this.game.paused)
-        {
-            return this;
-        }
-
         var i = input.moveCallbacks.length;
 
         while (i--)
@@ -38631,7 +38686,7 @@ Phaser.Pointer.prototype = {
         }
 
         //  Easy out if we're dragging something and it still exists
-        if (this.targetObject !== null && this.targetObject.isDragged === true)
+        if (this.targetObject !== null && (!this.game.paused || this.targetObject.noPause) && this.targetObject.isDragged === true)
         {
             if (this.targetObject.update(this) === false)
             {
@@ -38649,7 +38704,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * Process all interactive objects to find out which ones were updated in the recent Pointer move.
-    * 
+    *
     * @method Phaser.Pointer#processInteractiveObjects
     * @protected
     * @param {boolean} [fromClick=false] - Was this called from the click event?
@@ -38674,7 +38729,7 @@ Phaser.Pointer.prototype = {
             //  Reset checked status
             currentNode.checked = false;
 
-            if (currentNode.validForInput(highestInputPriorityID, highestRenderOrderID, false))
+            if (currentNode.validForInput(highestInputPriorityID, highestRenderOrderID, false) && (!this.game.paused || currentNode.sprite.noPause))
             {
                 //  Flag it as checked so we don't re-scan it on the next phase
                 currentNode.checked = true;
@@ -38729,7 +38784,7 @@ Phaser.Pointer.prototype = {
 
     /**
     * This will change the `Pointer.targetObject` object to be the one provided.
-    * 
+    *
     * This allows you to have fine-grained control over which object the Pointer is targeting.
     *
     * Note that even if you set a new Target here, it is still able to be replaced by any other valid
@@ -38861,9 +38916,9 @@ Phaser.Pointer.prototype = {
         this.withinGame = this.game.scale.bounds.contains(event.pageX, event.pageY);
         this.pointerId = null;
         this.identifier = null;
-        
+
         this.positionUp.setTo(this.x, this.y);
-        
+
         if (this.isMouse === false)
         {
             input.currentPointers--;
@@ -39037,7 +39092,7 @@ Phaser.Pointer.prototype.constructor = Phaser.Pointer;
 * How long the Pointer has been depressed on the touchscreen or *any* of the mouse buttons have been held down.
 * If not currently down it returns -1.
 * If you need to test a specific mouse or pen button then access the buttons directly, i.e. `Pointer.rightButton.duration`.
-* 
+*
 * @name Phaser.Pointer#duration
 * @property {number} duration
 * @readonly
@@ -40021,7 +40076,7 @@ Phaser.InputHandler.prototype = {
         {
             if (this._setHandCursor)
             {
-                this.game.canvas.style.cursor = "default";
+                this.game.canvas.style.cursor = "";
                 this._setHandCursor = false;
             }
 
@@ -40577,7 +40632,7 @@ Phaser.InputHandler.prototype = {
 
         if (this.useHandCursor && data.isDragged === false)
         {
-            this.game.canvas.style.cursor = "default";
+            this.game.canvas.style.cursor = "";
             this._setHandCursor = false;
         }
 
@@ -40785,8 +40840,9 @@ Phaser.InputHandler.prototype = {
             return false;
         }
 
-        var px = this.globalToLocalX(pointer.x) + this._dragPoint.x + this.dragOffset.x;
-        var py = this.globalToLocalY(pointer.y) + this._dragPoint.y + this.dragOffset.y;
+		var pointerLocalCoord = this.globalToLocal(pointer);
+        var px = pointerLocalCoord.x + this._dragPoint.x + this.dragOffset.x;
+        var py = pointerLocalCoord.y + this._dragPoint.y + this.dragOffset.y;
 
         if (this.sprite.fixedToCamera)
         {
@@ -41055,6 +41111,7 @@ Phaser.InputHandler.prototype = {
 
         var x = this.sprite.x;
         var y = this.sprite.y;
+		var pointerLocalCoord = this.globalToLocal(pointer);
 
         this.isDragged = true;
         this._draggedPointerID = pointer.id;
@@ -41069,9 +41126,10 @@ Phaser.InputHandler.prototype = {
             if (this.dragFromCenter)
             {
                 var bounds = this.sprite.getBounds();
+				var boundsCenterLocalCoord = this.globalToLocal(new Phaser.Point(bounds.centerX, bounds.centerY));
 
-                this.sprite.cameraOffset.x = this.globalToLocalX(pointer.x) + (this.sprite.cameraOffset.x - bounds.centerX);
-                this.sprite.cameraOffset.y = this.globalToLocalY(pointer.y) + (this.sprite.cameraOffset.y - bounds.centerY);
+                this.sprite.cameraOffset.x = pointerLocalCoord.x + (this.sprite.cameraOffset.x - boundsCenterLocalCoord.x);
+                this.sprite.cameraOffset.y = pointerLocalCoord.y + (this.sprite.cameraOffset.y - boundsCenterLocalCoord.y);
             }
 
             this._dragPoint.setTo(this.sprite.cameraOffset.x - pointer.x, this.sprite.cameraOffset.y - pointer.y);
@@ -41081,12 +41139,13 @@ Phaser.InputHandler.prototype = {
             if (this.dragFromCenter)
             {
                 var bounds = this.sprite.getBounds();
+				var boundsCenterLocalCoord = this.globalToLocal(new Phaser.Point(bounds.centerX, bounds.centerY));
 
-                this.sprite.x = this.globalToLocalX(pointer.x) + (this.sprite.x - bounds.centerX);
-                this.sprite.y = this.globalToLocalY(pointer.y) + (this.sprite.y - bounds.centerY);
+                this.sprite.x = pointerLocalCoord.x + (this.sprite.x - boundsCenterLocalCoord.x);
+                this.sprite.y = pointerLocalCoord.y + (this.sprite.y - boundsCenterLocalCoord.y);
             }
 
-            this._dragPoint.setTo(this.sprite.x - this.globalToLocalX(pointer.x), this.sprite.y - this.globalToLocalY(pointer.y));
+            this._dragPoint.setTo(this.sprite.x - pointerLocalCoord.x, this.sprite.y - pointerLocalCoord.y);
         }
 
         this.updateDrag(pointer, true);
@@ -41140,6 +41199,26 @@ Phaser.InputHandler.prototype = {
         return y;
 
     },
+	
+    /**
+    * Convert global coordinates to local sprite coordinates
+    *
+    * @method Phaser.InputHandler#globalToLocal
+    * @param {Phaser.Point} globalCoord - The global coordinates to convert.
+    * @return {Phaser.Point} A point containing the local coordinates.
+    */
+    globalToLocal: function (globalCoord) {
+
+		if (this.sprite.parent)
+		{
+			return this.game.input.getLocalPosition(this.sprite.parent, {x: globalCoord.x, y: globalCoord.y});
+		}
+		else
+		{
+			return globalCoord;
+		}
+
+    },	
 
     /**
     * Called by Pointer when drag is stopped on this Sprite. Should not usually be called directly.
@@ -43464,7 +43543,7 @@ Phaser.Keyboard.prototype = {
     /**
     * Returns `true` if the Key was pressed down within the `duration` value given, or `false` if it either isn't down,
     * or was pressed down longer ago than then given duration.
-    * 
+    *
     * @method Phaser.Keyboard#downDuration
     * @param {integer} keycode - The {@link Phaser.KeyCode keycode} of the key to check: i.e. Phaser.KeyCode.UP or Phaser.KeyCode.SPACEBAR.
     * @param {number} [duration=50] - The duration within which the key is considered as being just pressed. Given in ms.
@@ -43486,7 +43565,7 @@ Phaser.Keyboard.prototype = {
     /**
     * Returns `true` if the Key was pressed down within the `duration` value given, or `false` if it either isn't down,
     * or was pressed down longer ago than then given duration.
-    * 
+    *
     * @method Phaser.Keyboard#upDuration
     * @param {Phaser.KeyCode|integer} keycode - The keycode of the key to check, i.e. Phaser.KeyCode.UP or Phaser.KeyCode.SPACEBAR.
     * @param {number} [duration=50] - The duration within which the key is considered as being just released. Given in ms.
@@ -43563,13 +43642,17 @@ Object.defineProperty(Phaser.Keyboard.prototype, "lastChar", {
 
     get: function () {
 
-        if (this.event.charCode === 32)
+        if (this.event && this.event.charCode === 32)
         {
             return '';
         }
-        else
+        else if (this.pressEvent)
         {
             return String.fromCharCode(this.pressEvent.charCode);
+        }
+        else
+        {
+            return null;
         }
 
     }
@@ -44598,9 +44681,19 @@ Phaser.Component.Core.preUpdate = function () {
         this.body.preUpdate();
     }
 
-    for (var i = 0; i < this.children.length; i++)
+    // This can't loop in reverse, we need the renderOrderID to be in sequence
+    var i = 0;
+
+    while (i < this.children.length)
     {
-        this.children[i].preUpdate();
+        var child = this.children[i];
+
+        child.preUpdate();
+
+        if (this === child.parent)
+        {
+            i++;
+        }
     }
 
     return true;
@@ -44678,7 +44771,7 @@ Phaser.Component.Core.prototype = {
 
     /**
     * The world coordinates of this Game Object in pixels.
-    * Depending on where in the display list this Game Object is placed this value can differ from `position`, 
+    * Depending on where in the display list this Game Object is placed this value can differ from `position`,
     * which contains the x/y coordinates relative to the Game Objects parent.
     * @property {Phaser.Point} world
     */
@@ -44724,10 +44817,10 @@ Phaser.Component.Core.prototype = {
     /**
     * A Game Object is that is pendingDestroy is flagged to have its destroy method called on the next logic update.
     * You can set it directly to allow you to flag an object to be destroyed on its next update.
-    * 
-    * This is extremely useful if you wish to destroy an object from within one of its own callbacks 
+    *
+    * This is extremely useful if you wish to destroy an object from within one of its own callbacks
     * such as with Buttons or other Input events.
-    * 
+    *
     * @property {boolean} pendingDestroy
     */
     pendingDestroy: false,
@@ -46873,7 +46966,7 @@ Phaser.GameObjectFactory.prototype = {
 
     /**
     * Adds an existing display object to the game world.
-    * 
+    *
     * @method Phaser.GameObjectFactory#existing
     * @param {any} object - An instance of Phaser.Sprite, Phaser.Button or any other display object.
     * @return {any} The child that was added to the World.
@@ -46902,11 +46995,17 @@ Phaser.GameObjectFactory.prototype = {
     * @param {string|Phaser.RenderTexture|Phaser.BitmapData|Phaser.Video|PIXI.Texture} [key] - The image used as a texture by the bullets during rendering. If a string Phaser will get for an entry in the Image Cache. Or it can be an instance of a RenderTexture, BitmapData, Video or PIXI.Texture.
     * @param {string|number} [frame] - If a Texture Atlas or Sprite Sheet is used this allows you to specify the frame to be used by the bullets. Use either an integer for a Frame ID or a string for a frame name.
     * @param {Phaser.Group} [group] - Optional Group to add the Weapon to. If not specified it will be added to the World group.
+    * @param {function} [bulletClass] - The Class of the bullets that are launched by this Weapon. See {@link Phaser.Weapon#bulletClass}
     * @returns {Phaser.Weapon} A Weapon instance.
     */
-    weapon: function (quantity, key, frame, group) {
+    weapon: function (quantity, key, frame, group, bulletClass) {
 
         var weapon = this.game.plugins.add(Phaser.Weapon);
+
+        if (bulletClass)
+        {
+            weapon.bulletClass = bulletClass;
+        }
 
         weapon.createBullets(quantity, key, frame, group);
 
@@ -46916,10 +47015,10 @@ Phaser.GameObjectFactory.prototype = {
 
     /**
     * Create a new `Image` object.
-    * 
+    *
     * An Image is a light-weight object you can use to display anything that doesn't need physics or animation.
-    * 
-    * It can still rotate, scale, crop and receive input events. 
+    *
+    * It can still rotate, scale, crop and receive input events.
     * This makes it perfect for logos, backgrounds, simple buttons and other non-Sprite graphics.
     *
     * @method Phaser.GameObjectFactory#image
@@ -46965,14 +47064,14 @@ Phaser.GameObjectFactory.prototype = {
     * Create a new Creature Animation object.
     *
     * Creature is a custom Game Object used in conjunction with the Creature Runtime libraries by Kestrel Moon Studios.
-    * 
+    *
     * It allows you to display animated Game Objects that were created with the [Creature Automated Animation Tool](http://www.kestrelmoon.com/creature/).
-    * 
+    *
     * Note 1: You can only use Phaser.Creature objects in WebGL enabled games. They do not work in Canvas mode games.
     *
     * Note 2: You must use a build of Phaser that includes the CreatureMeshBone.js runtime and gl-matrix.js, or have them
     * loaded before your Phaser game boots.
-    * 
+    *
     * See the Phaser custom build process for more details.
     *
     * @method Phaser.GameObjectFactory#creature
@@ -46996,7 +47095,7 @@ Phaser.GameObjectFactory.prototype = {
 
     /**
     * Create a tween on a specific object.
-    * 
+    *
     * The object can be any JavaScript object or Phaser object such as Sprite.
     *
     * @method Phaser.GameObjectFactory#tween
@@ -47028,7 +47127,7 @@ Phaser.GameObjectFactory.prototype = {
 
     /**
     * A Group is a container for display objects that allows for fast pooling, recycling and collision checks.
-    * 
+    *
     * A Physics Group is the same as an ordinary Group except that is has enableBody turned on by default, so any Sprites it creates
     * are automatically given a physics body.
     *
@@ -47265,11 +47364,11 @@ Phaser.GameObjectFactory.prototype = {
     * Create a new BitmapText object.
     *
     * BitmapText objects work by taking a texture file and an XML file that describes the font structure.
-    * It then generates a new Sprite object for each letter of the text, proportionally spaced out and aligned to 
+    * It then generates a new Sprite object for each letter of the text, proportionally spaced out and aligned to
     * match the font structure.
-    * 
-    * BitmapText objects are less flexible than Text objects, in that they have less features such as shadows, fills and the ability 
-    * to use Web Fonts. However you trade this flexibility for pure rendering speed. You can also create visually compelling BitmapTexts by 
+    *
+    * BitmapText objects are less flexible than Text objects, in that they have less features such as shadows, fills and the ability
+    * to use Web Fonts. However you trade this flexibility for pure rendering speed. You can also create visually compelling BitmapTexts by
     * processing the font texture in an image editor first, applying fills and any other effects required.
     *
     * To create multi-line text insert \r, \n or \r\n escape codes into the text string.
@@ -48052,6 +48151,7 @@ Phaser.Component.Core.install.call(Phaser.Image.prototype, [
     'Smoothed'
 ]);
 
+Phaser.Image.prototype.preUpdateLifeSpan = Phaser.Component.LifeSpan.preUpdate;
 Phaser.Image.prototype.preUpdateInWorld = Phaser.Component.InWorld.preUpdate;
 Phaser.Image.prototype.preUpdateCore = Phaser.Component.Core.preUpdate;
 
@@ -48063,7 +48163,7 @@ Phaser.Image.prototype.preUpdateCore = Phaser.Component.Core.preUpdate;
 */
 Phaser.Image.prototype.preUpdate = function() {
 
-    if (!this.preUpdateInWorld())
+    if (!this.preUpdateInWorld() || !this.preUpdateLifeSpan())
     {
         return false;
     }
@@ -48865,7 +48965,7 @@ Phaser.SpriteBatch.prototype._renderCanvas = function (renderSession) {
 
 /**
 * A BitmapData object contains a Canvas element to which you can draw anything you like via normal Canvas context operations.
-* A single BitmapData can be used as the texture for one or many Images / Sprites. 
+* A single BitmapData can be used as the texture for one or many Images / Sprites.
 * So if you need to dynamically create a Sprite texture then they are a good choice.
 *
 * Important note: Every BitmapData creates its own Canvas element. Because BitmapData's are now Game Objects themselves, and don't
@@ -49098,7 +49198,7 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Shifts the contents of this BitmapData by the distances given.
-    * 
+    *
     * The image will wrap-around the edges on all sides if the wrap argument is true (the default).
     *
     * @method Phaser.BitmapData#move
@@ -49125,7 +49225,7 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Shifts the contents of this BitmapData horizontally.
-    * 
+    *
     * The image will wrap-around the sides if the wrap argument is true (the default).
     *
     * @method Phaser.BitmapData#moveH
@@ -49188,7 +49288,7 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Shifts the contents of this BitmapData vertically.
-    * 
+    *
     * The image will wrap-around the sides if the wrap argument is true (the default).
     *
     * @method Phaser.BitmapData#moveV
@@ -49325,7 +49425,7 @@ Phaser.BitmapData.prototype = {
     * You can optionally define the area to clear.
     * If the arguments are left empty it will clear the entire canvas.
     *
-    * You may need to call BitmapData.update after this in order to clear out the pixel data, 
+    * You may need to call BitmapData.update after this in order to clear out the pixel data,
     * but Phaser will not do this automatically for you.
     *
     * @method Phaser.BitmapData#clear
@@ -49385,26 +49485,58 @@ Phaser.BitmapData.prototype = {
     * `var texture = bitmapdata.generateTexture('ball');`
     *
     * Then you can either apply the texture to a sprite:
-    * 
+    *
     * `game.add.sprite(0, 0, texture);`
     *
     * or by using the string based key:
     *
     * `game.add.sprite(0, 0, 'ball');`
     *
+    * Most browsers now load the image data asynchronously, so you should use a callback:
+    *
+    * ```
+    * bitmapdata.generateTexture('ball', function (texture) {
+    *     game.add.sprite(0, 0, texture);
+    *     // or
+    *     game.add.sprite(0, 0, 'ball');
+    * });
+    * ```
+    *
+    * If this BitmapData is available during preload, you can use {@link Phaser.Loader#imageFromBitmapData} instead.
+    *
     * @method Phaser.BitmapData#generateTexture
     * @param {string} key - The key which will be used to store the image in the Cache.
-    * @return {PIXI.Texture} The newly generated texture.
+    * @param {function} [callback] - A function to execute once the texture is generated. It will be passed the newly generated texture.
+    * @param {any} [callbackContext] - The context in which to invoke the callback.
+    * @return {PIXI.Texture|null} The newly generated texture, or `null` if a callback was passed and the texture isn't available yet.
     */
-    generateTexture: function (key) {
+    generateTexture: function (key, callback, callbackContext) {
 
+        var cache = this.game.cache;
         var image = new Image();
+
+        if (callback)
+        {
+            image.onload = function () {
+                var obj = cache.addImage(key, '', image);
+                var texture = new PIXI.Texture(obj.base);
+
+                callback.call(callbackContext || null, texture);
+
+                image.onload = null;
+            };
+        }
 
         image.src = this.canvas.toDataURL("image/png");
 
-        var obj = this.game.cache.addImage(key, '', image);
+        if (!callback)
+        {
+            var obj = cache.addImage(key, '', image);
 
-        return new PIXI.Texture(obj.base);
+            return new PIXI.Texture(obj.base);
+        }
+
+        return null;
 
     },
 
@@ -49612,7 +49744,7 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Replaces all pixels matching one color with another. The color values are given as two sets of RGBA values.
-    * An optional region parameter controls if the replacement happens in just a specific area of the BitmapData or the entire thing. 
+    * An optional region parameter controls if the replacement happens in just a specific area of the BitmapData or the entire thing.
     *
     * @method Phaser.BitmapData#replaceRGB
     * @param {number} r1 - The red color value to be replaced. Between 0 and 255.
@@ -49671,7 +49803,7 @@ Phaser.BitmapData.prototype = {
     * @return {Phaser.BitmapData} This BitmapData object for method chaining.
     */
     setHSL: function (h, s, l, region) {
-        
+
         var bHaveH = h || h === 0;
         var bHaveS = s || s === 0;
         var bHaveL = l || l === 0;
@@ -49927,9 +50059,9 @@ Phaser.BitmapData.prototype = {
     /**
     * Scans the BitmapData, pixel by pixel, until it encounters a pixel that isn't transparent (i.e. has an alpha value > 0).
     * It then stops scanning and returns an object containing the color of the pixel in r, g and b properties and the location in the x and y properties.
-    * 
+    *
     * The direction parameter controls from which direction it should start the scan:
-    * 
+    *
     * 0 = top to bottom
     * 1 = bottom to top
     * 2 = left to right
@@ -50063,16 +50195,16 @@ Phaser.BitmapData.prototype = {
 
     /**
      * Copies a rectangular area from the source object to this BitmapData. If you give `null` as the source it will copy from itself.
-     * 
+     *
      * You can optionally resize, translate, rotate, scale, alpha or blend as it's drawn.
-     * 
+     *
      * All rotation, scaling and drawing takes place around the regions center point by default, but can be changed with the anchor parameters.
-     * 
+     *
      * Note that the source image can also be this BitmapData, which can create some interesting effects.
-     * 
+     *
      * This method has a lot of parameters for maximum control.
      * You can use the more friendly methods like `copyRect` and `draw` to avoid having to remember them all.
-     * 
+     *
      * You may prefer to use `copyTransform` if you're simply trying to draw a Sprite to this BitmapData,
      * and don't wish to translate, scale or rotate it from its original values.
      *
@@ -50288,7 +50420,7 @@ Phaser.BitmapData.prototype = {
     * It takes the objects tint and scale mode into consideration before drawing.
     *
     * You can optionally specify Blend Mode and Round Pixels arguments.
-    * 
+    *
     * @method Phaser.BitmapData#copyTransform
     * @param {Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapData|Phaser.BitmapText} [source] - The Game Object to draw.
     * @param {string} [blendMode=null] - The composite blend mode that will be used when drawing. The default is no blend mode at all. This is a Canvas globalCompositeOperation value such as 'lighter' or 'xor'.
@@ -50412,11 +50544,11 @@ Phaser.BitmapData.prototype = {
     /**
     * Draws the given Phaser.Sprite, Phaser.Image or Phaser.Text to this BitmapData at the coordinates specified.
     * You can use the optional width and height values to 'stretch' the sprite as it is drawn. This uses drawImage stretching, not scaling.
-    * 
+    *
     * The children will be drawn at their `x` and `y` world space coordinates. If this is outside the bounds of the BitmapData they won't be visible.
     * When drawing it will take into account the rotation, scale, scaleMode, alpha and tint values.
-    * 
-    * Note: You should ensure that at least 1 full update has taken place before calling this, 
+    *
+    * Note: You should ensure that at least 1 full update has taken place before calling this,
     * otherwise the objects are likely to render incorrectly, if at all.
     * You can trigger an update yourself by calling `stage.updateTransform()` before calling `draw`.
     *
@@ -50439,15 +50571,15 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Draws the immediate children of a Phaser.Group to this BitmapData.
-    * 
+    *
     * It's perfectly valid to pass in `game.world` as the Group, and it will iterate through the entire display list.
-    * 
+    *
     * Children are drawn _only_ if they have their `exists` property set to `true`, and have image, or RenderTexture, based Textures.
-    * 
+    *
     * The children will be drawn at their `x` and `y` world space coordinates. If this is outside the bounds of the BitmapData they won't be visible.
     * When drawing it will take into account the rotation, scale, scaleMode, alpha and tint values.
-    * 
-    * Note: You should ensure that at least 1 full update has taken place before calling this, 
+    *
+    * Note: You should ensure that at least 1 full update has taken place before calling this,
     * otherwise the objects are likely to render incorrectly, if at all.
     * You can trigger an update yourself by calling `stage.updateTransform()` before calling `drawGroup`.
     *
@@ -50470,7 +50602,7 @@ Phaser.BitmapData.prototype = {
 
     /**
     * A proxy for drawGroup that handles child iteration for more complex Game Objects.
-    * 
+    *
     * @method Phaser.BitmapData#drawGroupProxy
     * @private
     * @param {Phaser.Sprite|Phaser.Image|Phaser.BitmapText} child - The child to draw.
@@ -50506,19 +50638,19 @@ Phaser.BitmapData.prototype = {
 
     /**
     * Draws the Game Object or Group to this BitmapData and then recursively iterates through all of its children.
-    * 
+    *
     * If a child has an `exists` property then it (and its children) will be only be drawn if exists is `true`.
-    * 
-    * The children will be drawn at their `x` and `y` world space coordinates. If this is outside the bounds of the BitmapData 
-    * they won't be drawn. Depending on your requirements you may need to resize the BitmapData in advance to match the 
+    *
+    * The children will be drawn at their `x` and `y` world space coordinates. If this is outside the bounds of the BitmapData
+    * they won't be drawn. Depending on your requirements you may need to resize the BitmapData in advance to match the
     * bounds of the top-level Game Object.
-    * 
+    *
     * When drawing it will take into account the child's world rotation, scale and alpha values.
     *
     * It's perfectly valid to pass in `game.world` as the parent object, and it will iterate through the entire display list.
-    * 
+    *
     * Note: If you are trying to grab your entire game at the start of a State then you should ensure that at least 1 full update
-    * has taken place before doing so, otherwise all of the objects will render with incorrect positions and scales. You can 
+    * has taken place before doing so, otherwise all of the objects will render with incorrect positions and scales. You can
     * trigger an update yourself by calling `stage.updateTransform()` before calling `drawFull`.
     *
     * @method Phaser.BitmapData#drawFull
@@ -50589,7 +50721,7 @@ Phaser.BitmapData.prototype = {
             ctx.shadowOffsetX = x || 10;
             ctx.shadowOffsetY = y || 10;
         }
-        
+
         return this;
 
     },
@@ -50737,12 +50869,12 @@ Phaser.BitmapData.prototype = {
             ctx.fillStyle = 'rgb(0,0,0)';
             ctx.fillText(text, x + 1, y + 1);
         }
-        
+
         ctx.fillStyle = color;
         ctx.fillText(text, x, y);
 
         ctx.font = prevFont;
-        
+
         return this;
 
     },
@@ -51229,6 +51361,31 @@ Phaser.BitmapData.prototype = {
     blendLuminosity: function () {
 
         this.op = 'luminosity';
+        return this;
+
+    },
+
+    /**
+    * Updates a portion of the BitmapData from a source Bitmap.
+    * This optimization is important if calling update() on a large Bitmap is causing performance issues.
+    * Make sure you use getPixel32() instead of getPixel().
+    * This does not work with floating point numbers for x and y.
+    *
+    * @method Phaser.BitmapData#copyBitmapData
+    * @param {Phaser.BitmapData} [source] - The BitmapData you wish to copy.
+    * @param {number} [x] - The x coordinate of the top-left of the area to copy.
+    * @param {number} [y] - The y coordinate of the top-left of the area to copy.
+    * @return {Phaser.BitmapData} This BitmapData object for method chaining.
+    */
+    copyBitmapData: function(source, x, y) {
+
+        source.update();
+        for (var i = 0, destRowStart; i < source.height; i++) {
+            destRowStart = (y + i) * this.width + x;
+            for (var j = 0; j < source.width; j++) {
+                this.pixels[destRowStart + j] = source.pixels[i * source.width + j];
+            }
+        }
         return this;
 
     }
@@ -55570,56 +55727,56 @@ Phaser.Text.prototype.setStyle = function (style, update) {
 
     if (update === undefined) { update = false; }
 
-    style = style || {};
-    style.font = style.font || 'bold 20pt Arial';
-    style.backgroundColor = style.backgroundColor || null;
-    style.fill = style.fill || 'black';
-    style.align = style.align || 'left';
-    style.boundsAlignH = style.boundsAlignH || 'left';
-    style.boundsAlignV = style.boundsAlignV || 'top';
-    style.stroke = style.stroke || 'black'; //provide a default, see: https://github.com/GoodBoyDigital/pixi.js/issues/136
-    style.strokeThickness = style.strokeThickness || 0;
-    style.wordWrap = style.wordWrap || false;
-    style.wordWrapWidth = style.wordWrapWidth || 100;
-    style.maxLines = style.maxLines || 0;
-    style.shadowOffsetX = style.shadowOffsetX || 0;
-    style.shadowOffsetY = style.shadowOffsetY || 0;
-    style.shadowColor = style.shadowColor || 'rgba(0,0,0,0)';
-    style.shadowBlur = style.shadowBlur || 0;
-    style.tabs = style.tabs || 0;
+    var newStyle = Object.assign({}, style);
+    newStyle.font = style.font || 'bold 20pt Arial';
+    newStyle.backgroundColor = style.backgroundColor || null;
+    newStyle.fill = style.fill || 'black';
+    newStyle.align = style.align || 'left';
+    newStyle.boundsAlignH = style.boundsAlignH || 'left';
+    newStyle.boundsAlignV = style.boundsAlignV || 'top';
+    newStyle.stroke = style.stroke || 'black'; //provide a default, see: https://github.com/GoodBoyDigital/pixi.js/issues/136
+    newStyle.strokeThickness = style.strokeThickness || 0;
+    newStyle.wordWrap = style.wordWrap || false;
+    newStyle.wordWrapWidth = style.wordWrapWidth || 100;
+    newStyle.maxLines = style.maxLines || 0;
+    newStyle.shadowOffsetX = style.shadowOffsetX || 0;
+    newStyle.shadowOffsetY = style.shadowOffsetY || 0;
+    newStyle.shadowColor = style.shadowColor || 'rgba(0,0,0,0)';
+    newStyle.shadowBlur = style.shadowBlur || 0;
+    newStyle.tabs = style.tabs || 0;
 
-    var components = this.fontToComponents(style.font);
+    var components = this.fontToComponents(newStyle.font);
 
-    if (style.fontStyle)
+    if (newStyle.fontStyle)
     {
-        components.fontStyle = style.fontStyle;
+        components.fontStyle = newStyle.fontStyle;
     }
 
-    if (style.fontVariant)
+    if (newStyle.fontVariant)
     {
-        components.fontVariant = style.fontVariant;
+        components.fontVariant = newStyle.fontVariant;
     }
 
-    if (style.fontWeight)
+    if (newStyle.fontWeight)
     {
-        components.fontWeight = style.fontWeight;
+        components.fontWeight = newStyle.fontWeight;
     }
 
-    if (style.fontSize)
+    if (newStyle.fontSize)
     {
-        if (typeof style.fontSize === 'number')
+        if (typeof newStyle.fontSize === 'number')
         {
-            style.fontSize = style.fontSize + 'px';
+            newStyle.fontSize = newStyle.fontSize + 'px';
         }
 
-        components.fontSize = style.fontSize;
+        components.fontSize = newStyle.fontSize;
     }
 
     this._fontComponents = components;
 
-    style.font = this.componentsToFont(this._fontComponents);
+    newStyle.font = this.componentsToFont(this._fontComponents);
 
-    this.style = style;
+    this.style = newStyle;
     this.dirty = true;
 
     if (update)
@@ -57599,10 +57756,10 @@ Phaser.Text.fontPropertiesContext = Phaser.Text.fontPropertiesCanvas.getContext(
 
 /**
 * BitmapText objects work by taking a texture file and an XML or JSON file that describes the font structure.
-* It then generates a new Sprite object for each letter of the text, proportionally spaced out and aligned to 
+* It then generates a new Sprite object for each letter of the text, proportionally spaced out and aligned to
 * match the font structure.
-* 
-* BitmapText objects are less flexible than Text objects, in that they have less features such as shadows, fills and the ability 
+*
+* BitmapText objects are less flexible than Text objects, in that they have less features such as shadows, fills and the ability
 * to use Web Fonts, however you trade this flexibility for rendering speed. You can also create visually compelling BitmapTexts by
 * processing the font texture in an image editor, applying fills and any other effects required.
 *
@@ -57809,7 +57966,7 @@ Phaser.BitmapText.prototype.postUpdate = function () {
 
 /**
 * The text to be displayed by this BitmapText object.
-* 
+*
 * It's faster to use `BitmapText.text = string`, but this is kept for backwards compatibility.
 *
 * @method Phaser.BitmapText.prototype.setText
@@ -57822,9 +57979,9 @@ Phaser.BitmapText.prototype.setText = function (text) {
 };
 
 /**
-* Given the input text this will scan the characters until either a newline is encountered, 
+* Given the input text this will scan the characters until either a newline is encountered,
 * or the line exceeds maxWidth, taking into account kerning, character widths and scaling.
-* 
+*
 * @method Phaser.BitmapText.prototype.scanLine
 * @private
 * @param {object} data - A reference to the font object in the Phaser.Cache.
@@ -57858,7 +58015,7 @@ Phaser.BitmapText.prototype.scanLine = function (data, scale, text) {
 
             var c = 0;
 
-            //  If the character data isn't found in the data array 
+            //  If the character data isn't found in the data array
             //  then we replace it with a blank space
             if (charData === undefined)
             {
@@ -57875,7 +58032,7 @@ Phaser.BitmapText.prototype.scanLine = function (data, scale, text) {
                 lastSpace = i;
                 wrappedWidth = w;
             }
-            
+
             //  What will the line width be if we add this character to it?
             c = (kerning + charData.texture.width + charData.xOffset) * scale;
 
@@ -57907,7 +58064,7 @@ Phaser.BitmapText.prototype.scanLine = function (data, scale, text) {
 * in the BitmapText font data. If it doesn't the character is removed, or replaced with the `replace` argument.
 *
 * If no font data has been loaded at all this returns an empty string, as nothing can be rendered.
-* 
+*
 * @method Phaser.BitmapText.prototype.cleanText
 * @param {string} text - The text to parse.
 * @param {string} [replace=''] - The replacement string for any missing characters.
@@ -57993,7 +58150,7 @@ Phaser.BitmapText.prototype.updateText = function () {
         y += (data.lineHeight * scale);
 
         text = text.substr(line.text.length + 1);
-        
+
     } while (line.end === false);
 
     this.textHeight = y;
@@ -58048,6 +58205,7 @@ Phaser.BitmapText.prototype.updateText = function () {
             g.scale.set(scale);
             g.tint = this.tint;
             g.texture.requiresReTint = true;
+            g.cachedTint = 0xFFFFFF;
 
             if (!g.parent)
             {
@@ -58072,7 +58230,7 @@ Phaser.BitmapText.prototype.updateText = function () {
 * Sprites to be retained in the BitmapText._glyphs array. Although they are not attached to the display list they
 * still take up memory while sat in the glyphs pool waiting to be re-used in the future.
 *
-* If you know that the BitmapText will not grow any larger then you can purge out the excess glyphs from the pool 
+* If you know that the BitmapText will not grow any larger then you can purge out the excess glyphs from the pool
 * by calling this method.
 *
 * Calling this doesn't prevent you from increasing the length of the text again in the future.
@@ -58240,14 +58398,14 @@ Object.defineProperty(Phaser.BitmapText.prototype, 'text', {
 
 /**
 * The maximum display width of this BitmapText in pixels.
-* 
-* If BitmapText.text is longer than maxWidth then the lines will be automatically wrapped 
+*
+* If BitmapText.text is longer than maxWidth then the lines will be automatically wrapped
 * based on the last whitespace character found in the line.
-* 
+*
 * If no whitespace was found then no wrapping will take place and consequently the maxWidth value will not be honored.
-* 
+*
 * Disable maxWidth by setting the value to 0.
-* 
+*
 * @name Phaser.BitmapText#maxWidth
 * @property {number} maxWidth - The maximum width of this BitmapText in pixels.
 */
@@ -58275,9 +58433,9 @@ Object.defineProperty(Phaser.BitmapText.prototype, 'maxWidth', {
 * Enable or disable texture smoothing for this BitmapText.
 *
 * The smoothing is applied to the BaseTexture of this font, which all letters of the text reference.
-* 
+*
 * Smoothing is enabled by default.
-* 
+*
 * @name Phaser.BitmapText#smoothed
 * @property {boolean} smoothed
 */
@@ -60736,37 +60894,37 @@ Phaser.Device = function () {
     * @default
     */
     this.cocoonJS = false;
-    
+
     /**
     * @property {boolean} cocoonJSApp - Is this game running with CocoonJS.App?
     * @default
     */
     this.cocoonJSApp = false;
-    
+
     /**
     * @property {boolean} cordova - Is the game running under Apache Cordova?
     * @default
     */
     this.cordova = false;
-    
+
     /**
     * @property {boolean} node - Is the game running under Node.js?
     * @default
     */
     this.node = false;
-    
+
     /**
     * @property {boolean} nodeWebkit - Is the game running under Node-Webkit?
     * @default
     */
     this.nodeWebkit = false;
-    
+
     /**
     * @property {boolean} electron - Is the game running under GitHub Electron?
     * @default
     */
     this.electron = false;
-    
+
     /**
     * @property {boolean} ejecta - Is the game running under Ejecta?
     * @default
@@ -60837,7 +60995,10 @@ Phaser.Device = function () {
     this.canHandleAlpha = false;
 
     /**
-    * Whether or not the Canvas BlendModes are supported, consequently the ability to tint using the multiply method.
+    * Whether or not the {@link http://caniuse.com/#feat=canvas-blending Canvas Blend Modes} are supported, consequently the ability to tint using the multiply method.
+    *
+    * Expect `false` in Internet Explorer <= 11.
+    *
     * @property {boolean} canUseMultiply
     * @default
     */
@@ -61257,7 +61418,7 @@ Phaser.Device.whenReady = function (callback, context, nonPrimer) {
         readyCheck._monitor = readyCheck.bind(this);
         readyCheck._queue = readyCheck._queue || [];
         readyCheck._queue.push([callback, context]);
-        
+
         var cordova = typeof window.cordova !== 'undefined';
         var cocoonJS = navigator['isCocoonJS'];
 
@@ -61440,28 +61601,8 @@ Phaser.Device._initialize = function () {
         }
 
         //  Checks whether the Canvas BlendModes are supported by the current browser for drawImage.
-
-        var pngHead = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAQMAAADD8p2OAAAAA1BMVEX/';
-        var pngEnd = 'AAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==';
-
-        var magenta = new Image();
-        magenta.src = pngHead + 'AP804Oa6' + pngEnd;
-
-        var yellow = new Image();
-        yellow.src = pngHead + '/wCKxvRF' + pngEnd;
-
-        context.clearRect(0, 0, 6, 1);
-
         context.globalCompositeOperation = 'multiply';
-        context.drawImage(magenta, 0, 0);
-        context.drawImage(yellow, 2, 0);
-
-        if (context.getImageData(2, 0, 1, 1))
-        {
-            var data = context.getImageData(2, 0, 1, 1).data;
-
-            device.canUseMultiply = (data[0] === 255 && data[1] === 0 && data[2] === 0);
-        }
+        device.canUseMultiply = (context.globalCompositeOperation === 'multiply');
 
         Phaser.CanvasPool.removeByCanvas(canvas);
 
@@ -61693,29 +61834,29 @@ Phaser.Device._initialize = function () {
         {
             device.webApp = true;
         }
-        
+
         if (typeof window.cordova !== 'undefined')
         {
             device.cordova = true;
         }
-        
+
         if (typeof process !== 'undefined' && typeof require !== 'undefined')
         {
             device.node = true;
         }
-        
+
         if (device.node && typeof process.versions === 'object')
         {
             device.nodeWebkit = !!process.versions['node-webkit'];
-            
+
             device.electron = !!process.versions.electron;
         }
-        
+
         if (navigator['isCocoonJS'])
         {
             device.cocoonJS = true;
         }
-        
+
         if (device.cocoonJS)
         {
             try {
@@ -62112,7 +62253,7 @@ Phaser.Device.isConsoleOpen = function () {
 *
 * @example
 * var defaultRenderingMode = Phaser.Device.isAndroidStockBrowser() ? Phaser.CANVAS : Phaser.AUTO;
-* 
+*
 * @method isAndroidStockBrowser
 * @memberof Phaser.Device.prototype
 */
@@ -62723,7 +62864,7 @@ Phaser.Math = {
             return min;
         }
 
-        if (min < max)
+        if (min > max)
         {
             var temp = min;
             min = max;
@@ -62753,7 +62894,7 @@ Phaser.Math = {
             return min;
         }
 
-        if (min < max)
+        if (min > max)
         {
             var temp = min;
             min = max;
@@ -63694,6 +63835,20 @@ Phaser.Math = {
         }
 
         return { sin: sinTable, cos: cosTable, length: length };
+
+    },
+
+    /**
+    * Returns the length of the hypotenuse connecting two segments of given lengths.
+    *
+    * @method Phaser.Math#hypot
+    * @param {number} a
+    * @param {number} b
+    * @return {number} The length of the hypotenuse connecting the given lengths.
+    */
+    hypot: function (a, b) {
+
+        return Math.sqrt(a * a + b * b);
 
     },
 
@@ -68729,7 +68884,7 @@ Phaser.AnimationManager = function (sprite) {
     this.currentAnim = null;
 
     /**
-    * @property {boolean} updateIfVisible - Should the animation data continue to update even if the Sprite.visible is set to false.
+    * @property {boolean} updateIfVisible - Update the animation data only while the the sprite is {@link Phaser.Sprite#visible}. Set to `false` to continue updating while the sprite is invisible.
     * @default
     */
     this.updateIfVisible = true;
@@ -70196,6 +70351,11 @@ Phaser.Frame = function (index, x, y, width, height, name) {
     */
     this.height = height;
 
+    if (this.width === 0 || this.height === 0)
+    {
+        console.warn('Phaser.Frame: Frame "' + this.name + '" has a width or height of zero');
+    }
+
     /**
     * @property {string} name - Useful for Texture Atlas files (is set to the filename value).
     */
@@ -71262,7 +71422,7 @@ Phaser.Cache.prototype = {
         {
             this.removeImage(key);
         }
-        
+
         var data = (extension in Phaser.LoaderParser) ? Phaser.LoaderParser[extension](arrayBuffer) : arrayBuffer;
 
         var texture = {
@@ -71305,6 +71465,8 @@ Phaser.Cache.prototype = {
     * Adds an Image file into the Cache. The file must have already been loaded, typically via Phaser.Loader, but can also have been loaded into the DOM.
     * If an image already exists in the cache with the same key then it is removed and destroyed, and the new image inserted in its place.
     *
+    * If the image has not yet been fetched (successfully or not), a `console.warn` message will be displayed.
+    *
     * @method Phaser.Cache#addImage
     * @param {string} key - The key that this asset will be stored in the cache under. This should be unique within this cache.
     * @param {string} url - The URL the asset was loaded from. If the asset was not loaded externally set to `null`.
@@ -71316,6 +71478,11 @@ Phaser.Cache.prototype = {
         if (this.checkImageKey(key))
         {
             this.removeImage(key);
+        }
+
+        if (data.complete === false)
+        {
+            console.warn('Phaser.Cache.addImage: Image "' + key + '" hasn\'t been retrieved yet');
         }
 
         var img = {
@@ -71357,17 +71524,22 @@ Phaser.Cache.prototype = {
     */
     addDefaultImage: function () {
 
+        var cache = this;
         var img = new Image();
 
+        img.onload = function () {
+            var obj = cache.addImage('__default', null, img);
+
+            //  Because we don't want to invalidate the sprite batch for an invisible texture
+            obj.base.skipRender = true;
+
+            //  Make it easily available within the rest of Phaser / Pixi
+            Phaser.Cache.DEFAULT = new PIXI.Texture(obj.base);
+
+            img.onload = null;
+        };
+
         img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAA1BMVEX///+nxBvIAAAAAXRSTlMAQObYZgAAABVJREFUeF7NwIEAAAAAgKD9qdeocAMAoAABm3DkcAAAAABJRU5ErkJggg==";
-
-        var obj = this.addImage('__default', null, img);
-
-        //  Because we don't want to invalidate the sprite batch for an invisible texture
-        obj.base.skipRender = true;
-
-        //  Make it easily available within the rest of Phaser / Pixi
-        Phaser.Cache.DEFAULT = new PIXI.Texture(obj.base);
 
     },
 
@@ -71382,14 +71554,19 @@ Phaser.Cache.prototype = {
     */
     addMissingImage: function () {
 
+        var cache = this;
         var img = new Image();
 
+        img.onload = function () {
+            var obj = cache.addImage('__missing', null, img);
+
+            //  Make it easily available within the rest of Phaser / Pixi
+            Phaser.Cache.MISSING = new PIXI.Texture(obj.base);
+
+            img.onload = null;
+        };
+
         img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAJ9JREFUeNq01ssOwyAMRFG46v//Mt1ESmgh+DFmE2GPOBARKb2NVjo+17PXLD8a1+pl5+A+wSgFygymWYHBb0FtsKhJDdZlncG2IzJ4ayoMDv20wTmSMzClEgbWYNTAkQ0Z+OJ+A/eWnAaR9+oxCF4Os0H8htsMUp+pwcgBBiMNnAwF8GqIgL2hAzaGFFgZauDPKABmowZ4GL369/0rwACp2yA/ttmvsQAAAABJRU5ErkJggg==";
-
-        var obj = this.addImage('__missing', null, img);
-
-        //  Make it easily available within the rest of Phaser / Pixi
-        Phaser.Cache.MISSING = new PIXI.Texture(obj.base);
 
     },
 
@@ -71558,9 +71735,9 @@ Phaser.Cache.prototype = {
 
     /**
     * Add a new Bitmap Font to the Cache, where the font texture is part of a Texture Atlas.
-    * 
+    *
     * The atlas must already exist in the cache, and be available based on the given `atlasKey`.
-    * 
+    *
     * The `atlasFrame` specifies the name of the frame within the atlas that the Bitmap Font is
     * stored in.
     *
@@ -73060,7 +73237,9 @@ Phaser.Cache.prototype = {
 
     /**
     * Clears the cache. Removes every local cache object reference.
-    * If an object in the cache has a `destroy` method it will also be called.
+    * If an object in the cache has a `destroy` method it will be called;
+    * otherwise, `destroy` will be called on any of the object's `base`, `data`,
+    * `frameData`, or `texture` properties.
     *
     * @method Phaser.Cache#destroy
     */
@@ -73074,10 +73253,7 @@ Phaser.Cache.prototype = {
             {
                 if (key !== '__default' && key !== '__missing')
                 {
-                    if (cache[key]['destroy'])
-                    {
-                        cache[key].destroy();
-                    }
+                    this.destroyItem(cache[key]);
 
                     delete cache[key];
                 }
@@ -73087,6 +73263,42 @@ Phaser.Cache.prototype = {
         this._urlMap = null;
         this._urlResolver = null;
         this._urlTemp = null;
+
+    },
+
+    /**
+    * @method Phaser.Cache#destroyItem
+    * @protected
+    * @param {object} item
+    */
+    destroyItem: function (item) {
+
+        if (item.destroy)
+        {
+            item.destroy();
+        }
+        else
+        {
+            if (item.base && item.base.destroy)
+            {
+                item.base.destroy();
+            }
+
+            if (item.data && item.data.destroy)
+            {
+                item.data.destroy();
+            }
+
+            if (item.frameData && item.frameData.destroy)
+            {
+                item.frameData.destroy();
+            }
+
+            if (item.texture && item.texture.destroy)
+            {
+                item.texture.destroy(true);
+            }
+        }
 
     }
 
@@ -73203,7 +73415,7 @@ Phaser.Loader = function (game) {
     * If you don't require these mappings, or they cause problems on your server, then
     * remove them from the headers object and the XHR request will not try to use them.
     *
-    * This object can also be used to set the `X-Requested-With` header to 
+    * This object can also be used to set the `X-Requested-With` header to
     * `XMLHttpRequest` (or any other value you need). To enable this do:
     *
     * `this.load.headers.requestedWith = 'XMLHttpRequest'`
@@ -73211,7 +73423,7 @@ Phaser.Loader = function (game) {
     * before adding anything to the Loader. The XHR loader will then call:
     *
     * `setRequestHeader('X-Requested-With', this.headers['requestedWith'])`
-    * 
+    *
     * @property {object} headers
     * @default
     */
@@ -73805,7 +74017,7 @@ Phaser.Loader.prototype = {
     *
     * This method also supports passing in a texture object as the `url` argument. This allows you to load
     * compressed textures into Phaser. You can also use `Loader.texture` to do this.
-    * 
+    *
     * Compressed Textures are a WebGL only feature, and require 3rd party tools to create.
     * Available tools include Texture Packer, PVRTexTool, DirectX Texture Tool and Mali Texture Compression Tool.
     *
@@ -73825,8 +74037,8 @@ Phaser.Loader.prototype = {
     *     truecolor: 'assets/factory.png'
     * });
     * ```
-    * 
-    * The `truecolor` property points to a standard PNG file, that will be used if none of the 
+    *
+    * The `truecolor` property points to a standard PNG file, that will be used if none of the
     * compressed formats are supported by the browser / GPU.
     *
     * @method Phaser.Loader#image
@@ -73849,6 +74061,21 @@ Phaser.Loader.prototype = {
     },
 
     /**
+    * Generate an image from a BitmapData object and add it to the current load queue.
+    *
+    * @method Phaser.Loader#imageFromBitmapData
+    * @param {string} key - Unique asset key for the generated image.
+    * @param {Phaser.BitmapData} bitmapData
+    * @param {boolean} [overwrite=false] - If an unloaded file with a matching key already exists in the queue, this entry will overwrite it.
+    * @return {Phaser.Loader} This Loader instance.
+    */
+    imageFromBitmapData: function (key, bitmapData, overwrite) {
+
+        return this.image(key, bitmapData.canvas.toDataURL('image/png'), overwrite);
+
+    },
+
+    /**
     * Adds a Compressed Texture Image to the current load queue.
     *
     * Compressed Textures are a WebGL only feature, and require 3rd party tools to create.
@@ -73856,7 +74083,7 @@ Phaser.Loader.prototype = {
     *
     * Supported texture compression formats are: PVRTC, S3TC and ETC1.
     * Supported file formats are: PVR, DDS, KTX and PKM.
-    * 
+    *
     * The formats that support all 3 compression algorithms are PVR and KTX.
     * PKM only supports ETC1, and DDS only S3TC for now.
     *
@@ -73870,10 +74097,10 @@ Phaser.Loader.prototype = {
     *     truecolor: 'assets/factory.png'
     * });
     * ```
-    * 
-    * The `truecolor` property points to a standard PNG file, that will be used if none of the 
+    *
+    * The `truecolor` property points to a standard PNG file, that will be used if none of the
     * compressed formats are supported by the browser / GPU.
-    * 
+    *
     * The file is **not** loaded immediately after calling this method. The file is added to the queue ready to be loaded when the loader starts.
     *
     * The key must be a unique String. It is used to add the file to the Phaser.Cache upon successful load.
@@ -74369,7 +74596,7 @@ Phaser.Loader.prototype = {
     * Adds a Tile Map data file to the current load queue.
     *
     * Phaser can load data in two different formats: CSV and Tiled JSON.
-    * 
+    *
     * Tiled is a free software package, specifically for creating tilemaps, and is available from http://www.mapeditor.org
     *
     * You can choose to either load the data externally, by providing a URL to a json file.
@@ -75128,11 +75355,11 @@ Phaser.Loader.prototype = {
             this.onLoadStart.dispatch();
         }
 
+        this.reset();
+
         this.onLoadComplete.dispatch();
 
         this.game.state.loadComplete();
-
-        this.reset();
 
     },
 
@@ -75441,7 +75668,9 @@ Phaser.Loader.prototype = {
         file.data.src = this.transformUrl(file.url, file);
 
         // Image is immediately-available/cached
-        if (file.data.complete && file.data.width && file.data.height)
+        // Special Firefox magic, exclude from cached reload
+        // More info here: https://github.com/photonstorm/phaser/issues/2534
+        if (!this.game.device.firefox && file.data.complete && file.data.width && file.data.height)
         {
             file.data.onload = null;
             file.data.onerror = null;
@@ -77120,6 +77349,20 @@ Phaser.Sound = function (game, key, volume, loop, connect) {
     */
     this._sound = null;
 
+    /**
+    * @property {boolean} _markedToDelete - When audio stops, disconnect Web Audio nodes.
+    * @private
+    */
+    this._markedToDelete = false;
+
+    /**
+    * @property {boolean} _removeFromSoundManager - When audio stops, remove it from the Sound Manager and destroy it.
+    * @private
+    */
+    this._removeFromSoundManager = false;
+
+
+
     if (this.usingWebAudio)
     {
         this.context = this.game.sound.context;
@@ -77333,7 +77576,7 @@ Phaser.Sound.prototype = {
     /**
     * Called automatically by the AudioContext when the sound stops playing.
     * Doesn't get called if the sound is set to loop or is a section of an Audio Sprite.
-    * 
+    *
     * @method Phaser.Sound#onEndedHandler
     * @protected
     */
@@ -77344,6 +77587,38 @@ Phaser.Sound.prototype = {
         this.currentTime = this.durationMS;
         this.stop();
 
+        if (this._markedToDelete)
+        {
+            if (this.externalNode)
+            {
+                this._sound.disconnect(this.externalNode);
+            }
+            else if (this.gainNode)
+            {
+                this._sound.disconnect(this.gainNode);
+            }
+
+            if (this._removeFromSoundManager)
+            {
+                this.game.sound.remove(this);
+            }
+            else
+            {
+                this.markers = {};
+                this.context = null;
+                this._buffer = null;
+                this.externalNode = null;
+
+                this.onDecoded.dispose();
+                this.onPlay.dispose();
+                this.onPause.dispose();
+                this.onResume.dispose();
+                this.onLoop.dispose();
+                this.onStop.dispose();
+                this.onMute.dispose();
+                this.onMarkerComplete.dispose();
+            }
+        }
     },
 
     /**
@@ -77449,7 +77724,7 @@ Phaser.Sound.prototype = {
 
     /**
     * Play this sound, or a marked section of it.
-    * 
+    *
     * @method Phaser.Sound#play
     * @param {string} [marker=''] - If you want to play a marker then give the key here, otherwise leave blank to play the full sound.
     * @param {number} [position=0] - The starting position to play the sound from - this is ignored if you provide a marker.
@@ -77506,7 +77781,7 @@ Phaser.Sound.prototype = {
 
         if (marker === '' && Object.keys(this.markers).length > 0)
         {
-            //  If they didn't specify a marker but this is an audio sprite, 
+            //  If they didn't specify a marker but this is an audio sprite,
             //  we should never play the entire thing
             return this;
         }
@@ -77834,6 +78109,7 @@ Phaser.Sound.prototype = {
                 {
                     this._sound.disconnect(this.gainNode);
                 }
+
             }
             else if (this.usingAudioTag)
             {
@@ -77893,7 +78169,7 @@ Phaser.Sound.prototype = {
         this.fadeTo(duration, 1);
 
     },
-    
+
     /**
     * Decreases the volume of this Sound from its current value to 0 over the duration specified.
     * At the end of the fade Sound.onFadeComplete is dispatched with this Sound object as the first parameter,
@@ -77910,7 +78186,7 @@ Phaser.Sound.prototype = {
 
     /**
     * Fades the volume of this Sound from its current value to the given volume over the duration specified.
-    * At the end of the fade Sound.onFadeComplete is dispatched with this Sound object as the first parameter, 
+    * At the end of the fade Sound.onFadeComplete is dispatched with this Sound object as the first parameter,
     * and the final volume (volume) as the second parameter.
     *
     * @method Phaser.Sound#fadeTo
@@ -77987,6 +78263,8 @@ Phaser.Sound.prototype = {
 
         if (remove === undefined) { remove = true; }
 
+        this._markedToDelete = true;
+        this._removeFromSoundManager = remove;
         this.stop();
 
         if (remove)
@@ -78009,7 +78287,6 @@ Phaser.Sound.prototype = {
             this.onMute.dispose();
             this.onMarkerComplete.dispose();
         }
-
     }
 
 };
@@ -86027,9 +86304,9 @@ Phaser.Physics.Arcade = function (game) {
     this.bounds = new Phaser.Rectangle(0, 0, game.world.width, game.world.height);
 
     /**
-    * Set the checkCollision properties to control for which bounds collision is processed.
+    * Which edges of the World bounds Bodies can collide against when `collideWorldBounds` is `true`.
     * For example checkCollision.down = false means Bodies cannot collide with the World.bounds.bottom.
-    * @property {object} checkCollision - An object containing allowed collision flags.
+    * @property {object} checkCollision - An object containing allowed collision flags (up, down, left, right).
     */
     this.checkCollision = { up: true, down: true, left: true, right: true };
 
@@ -86213,7 +86490,7 @@ Phaser.Physics.Arcade.prototype = {
 
     /**
     * Creates an Arcade Physics body on the given game object.
-    * 
+    *
     * A game object can only have 1 physics body active at any one time, and it can't be changed until the body is nulled.
     *
     * When you add an Arcade Physics body to an object it will automatically add the object into its parent Groups hash array.
@@ -86764,7 +87041,7 @@ Phaser.Physics.Arcade.prototype = {
                         continue;
                     }
                 }
-                
+
                 this.collideSpriteVsSprite(sprite, object1, collideCallback, processCallback, callbackContext, overlapOnly);
             }
         }
@@ -86888,7 +87165,7 @@ Phaser.Physics.Arcade.prototype = {
                         break;
                     }
                 }
-                
+
                 this.collideSpriteVsSprite(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
             }
         }
@@ -87658,7 +87935,7 @@ Phaser.Physics.Arcade.prototype = {
         }
 
         return output;
-        
+
     },
 
     /**
@@ -87782,7 +88059,7 @@ Phaser.Physics.Arcade.prototype = {
         if (speed === undefined) { speed = 60; }
         point = point || new Phaser.Point();
 
-        return point.setTo((Math.cos(this.game.math.degToRad(angle)) * speed), (Math.sin(this.game.math.degToRad(angle)) * speed));
+        return point.setTo((Math.cos(Phaser.Math.degToRad(angle)) * speed), (Math.sin(Phaser.Math.degToRad(angle)) * speed));
 
     },
 
@@ -88095,7 +88372,7 @@ Phaser.Physics.Arcade.prototype = {
     },
 
     /**
-    * Find the angle in radians between a display object (like a Sprite) and a Pointer, 
+    * Find the angle in radians between a display object (like a Sprite) and a Pointer,
     * taking their x/y and center into account relative to the world.
     *
     * @method Phaser.Physics.Arcade#worldAngleToPointer
@@ -88198,7 +88475,7 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     this.rotation = sprite.angle;
 
     /**
-    * @property {number} preRotation - The previous rotation of the physics body.
+    * @property {number} preRotation - The previous rotation of the physics body, in degrees.
     * @readonly
     */
     this.preRotation = sprite.angle;
@@ -88252,12 +88529,12 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     this.center = new Phaser.Point(sprite.x + this.halfWidth, sprite.y + this.halfHeight);
 
     /**
-    * @property {Phaser.Point} velocity - The velocity, or rate of change in speed of the Body. Measured in pixels per second.
+    * @property {Phaser.Point} velocity - The velocity, or rate of change the Body's position. Measured in pixels per second.
     */
     this.velocity = new Phaser.Point();
 
     /**
-    * @property {Phaser.Point} newVelocity - The new velocity. Calculated during the Body.preUpdate and applied to its position.
+    * @property {Phaser.Point} newVelocity - The distanced traveled during the last update, equal to `velocity * physicsElapsed`. Calculated during the Body.preUpdate and applied to its position.
     * @readonly
     */
     this.newVelocity = new Phaser.Point();
@@ -88273,7 +88550,7 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     this.acceleration = new Phaser.Point();
 
     /**
-    * @property {Phaser.Point} drag - The drag applied to the motion of the Body.
+    * @property {Phaser.Point} drag - The drag applied to the motion of the Body. Measured in pixels per second squared.
     */
     this.drag = new Phaser.Point();
 
@@ -88284,7 +88561,7 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     this.allowGravity = true;
 
     /**
-    * @property {Phaser.Point} gravity - A local gravity applied to this Body. If non-zero this over rides any world gravity, unless Body.allowGravity is set to false.
+    * @property {Phaser.Point} gravity - A local gravity applied to this Body. If non-zero this overrides any world gravity, unless Body.allowGravity is set to false.
     */
     this.gravity = new Phaser.Point();
 
@@ -88315,19 +88592,19 @@ Phaser.Physics.Arcade.Body = function (sprite) {
 
     /**
     * A Signal that is dispatched when this Body collides with another Body.
-    * 
+    *
     * You still need to call `game.physics.arcade.collide` in your `update` method in order
     * for this signal to be dispatched.
     *
     * Usually you'd pass a callback to the `collide` method, but this signal provides for
     * a different level of notification.
-    * 
+    *
     * Due to the potentially high volume of signals this could create it is disabled by default.
-    * 
+    *
     * To use this feature set this property to a Phaser.Signal: `sprite.body.onCollide = new Phaser.Signal()`
     * and it will be called when a collision happens, passing two arguments: the sprites which collided.
     * The first sprite in the argument is always the owner of this Body.
-    * 
+    *
     * If two Bodies with this Signal set collide, both will dispatch the Signal.
     * @property {Phaser.Signal} onCollide
     */
@@ -88335,37 +88612,37 @@ Phaser.Physics.Arcade.Body = function (sprite) {
 
     /**
     * A Signal that is dispatched when this Body overlaps with another Body.
-    * 
+    *
     * You still need to call `game.physics.arcade.overlap` in your `update` method in order
     * for this signal to be dispatched.
     *
     * Usually you'd pass a callback to the `overlap` method, but this signal provides for
     * a different level of notification.
-    * 
+    *
     * Due to the potentially high volume of signals this could create it is disabled by default.
-    * 
+    *
     * To use this feature set this property to a Phaser.Signal: `sprite.body.onOverlap = new Phaser.Signal()`
     * and it will be called when a collision happens, passing two arguments: the sprites which collided.
     * The first sprite in the argument is always the owner of this Body.
-    * 
+    *
     * If two Bodies with this Signal set collide, both will dispatch the Signal.
     * @property {Phaser.Signal} onOverlap
     */
     this.onOverlap = null;
 
     /**
-    * @property {Phaser.Point} maxVelocity - The maximum velocity in pixels per second sq. that the Body can reach.
+    * @property {Phaser.Point} maxVelocity - The maximum velocity (in pixels per second squared) that the Body can reach.
     * @default
     */
     this.maxVelocity = new Phaser.Point(10000, 10000);
 
     /**
-    * @property {Phaser.Point} friction - The amount of movement that will occur if another object 'rides' this one.
+    * @property {Phaser.Point} friction - If this Body is moving, and another Body is 'riding' this one, this is the amount of motion the riding Body receives on each axis.
     */
     this.friction = new Phaser.Point(1, 0);
 
     /**
-    * @property {number} angularVelocity - The angular velocity controls the rotation speed of the Body. It is measured in degrees per second.
+    * @property {number} angularVelocity - The angular velocity is the rate of change of the Body's rotation. It is measured in degrees per second.
     * @default
     */
     this.angularVelocity = 0;
@@ -88395,19 +88672,19 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     this.mass = 1;
 
     /**
-    * @property {number} angle - The angle of the Body's velocity in radians.
+    * @property {number} angle - The angle of the Body's **velocity** in radians.
     * @readonly
     */
     this.angle = 0;
 
     /**
-    * @property {number} speed - The speed of the Body as calculated by its velocity.
+    * @property {number} speed - The speed of the Body in pixels per second, equal to the magnitude of the velocity.
     * @readonly
     */
     this.speed = 0;
 
     /**
-    * @property {number} facing - A const reference to the direction the Body is traveling or facing.
+    * @property {number} facing - A const reference to the direction the Body is traveling or facing: Phaser.NONE, Phaser.LEFT, Phaser.RIGHT, Phaser.UP, or Phaser.DOWN. If the Body is moving on both axes, UP and DOWN take precedence.
     * @default
     */
     this.facing = Phaser.NONE;
@@ -88478,20 +88755,20 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     * For example checkCollision.up = false means it won't collide when the collision happened while moving up.
     * If you need to disable a Body entirely, use `body.enable = false`, this will also disable motion.
     * If you need to disable just collision and/or overlap checks, but retain motion, set `checkCollision.none = true`.
-    * @property {object} checkCollision - An object containing allowed collision.
+    * @property {object} checkCollision - An object containing allowed collision (none, up, down, left, right).
     */
     this.checkCollision = { none: false, any: true, up: true, down: true, left: true, right: true };
 
     /**
     * This object is populated with boolean values when the Body collides with another.
     * touching.up = true means the collision happened to the top of this Body for example.
-    * @property {object} touching - An object containing touching results.
+    * @property {object} touching - An object containing touching results (none, up, down, left, right).
     */
     this.touching = { none: true, up: false, down: false, left: false, right: false };
 
     /**
     * This object is populated with previous touching values from the bodies previous collision.
-    * @property {object} wasTouching - An object containing previous touching results.
+    * @property {object} wasTouching - An object containing previous touching results (none, up, down, left, right).
     */
     this.wasTouching = { none: true, up: false, down: false, left: false, right: false };
 
@@ -88522,7 +88799,7 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     /**
     * If true the Body will check itself against the Sprite.getBounds() dimensions and adjust its width and height accordingly.
     * If false it will compare its dimensions against the Sprite scale instead, and adjust its width height if the scale has changed.
-    * Typically you would need to enable syncBounds if your sprite is the child of a responsive display object such as a FlexLayer, 
+    * Typically you would need to enable syncBounds if your sprite is the child of a responsive display object such as a FlexLayer,
     * or in any situation where the Sprite scale doesn't change, but its parents scale is effecting the dimensions regardless.
     * @property {boolean} syncBounds
     * @default
@@ -88657,9 +88934,19 @@ Phaser.Physics.Arcade.Body.prototype = {
         {
             this.halfWidth = Math.floor(this.width / 2);
             this.halfHeight = Math.floor(this.height / 2);
-            this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
+            this.updateCenter();
         }
 
+    },
+
+    /**
+    * Update the Body's center from its position.
+    *
+    * @method Phaser.Physics.Arcade.Body#updateCenter
+    * @protected
+    */
+    updateCenter: function () {
+        this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
     },
 
     /**
@@ -88695,6 +88982,10 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.blocked.left = false;
         this.blocked.right = false;
 
+        this.overlapR = 0;
+        this.overlapX = 0;
+        this.overlapY = 0;
+
         this.embedded = false;
 
         this.updateBounds();
@@ -88723,6 +89014,7 @@ Phaser.Physics.Arcade.Body.prototype = {
 
             this.position.x += this.newVelocity.x;
             this.position.y += this.newVelocity.y;
+            this.updateCenter();
 
             if (this.position.x !== this.prev.x || this.position.y !== this.prev.y)
             {
@@ -88893,7 +89185,7 @@ Phaser.Physics.Arcade.Body.prototype = {
             this._reset = true;
         }
 
-        this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
+        this.updateCenter();
 
         if (this.allowRotation)
         {
@@ -88991,14 +89283,14 @@ Phaser.Physics.Arcade.Body.prototype = {
 
     /**
     * Note: This method is experimental, and may be changed or removed in a future release.
-    * 
+    *
     * This method moves the Body in the given direction, for the duration specified.
     * It works by setting the velocity on the Body, and an internal timer, and then
     * monitoring the duration each frame. When the duration is up the movement is
     * stopped and the `Body.onMoveComplete` signal is dispatched.
     *
     * Movement also stops if the Body collides or overlaps with any other Body.
-    * 
+    *
     * You can control if the velocity should be reset to zero on collision, by using
     * the property `Body.stopVelocityOnCollide`.
     *
@@ -89007,12 +89299,12 @@ Phaser.Physics.Arcade.Body.prototype = {
     * You can optionally set a speed in pixels per second. If not specified it
     * will use the current `Body.speed` value. If this is zero, the function will return false.
     *
-    * Please note that due to browser timings you should allow for a variance in 
+    * Please note that due to browser timings you should allow for a variance in
     * when the duration will actually expire. Depending on system it may be as much as
     * +- 50ms. Also this method doesn't take into consideration any other forces acting
     * on the Body, such as Gravity, drag or maxVelocity, all of which may impact the
     * movement.
-    * 
+    *
     * @method Phaser.Physics.Arcade.Body#moveFrom
     * @param  {integer} duration  - The duration of the movement, in ms.
     * @param  {integer} [speed] - The speed of the movement, in pixels per second. If not provided `Body.speed` is used.
@@ -89065,27 +89357,27 @@ Phaser.Physics.Arcade.Body.prototype = {
 
     /**
     * Note: This method is experimental, and may be changed or removed in a future release.
-    * 
+    *
     * This method moves the Body in the given direction, for the duration specified.
     * It works by setting the velocity on the Body, and an internal distance counter.
     * The distance is monitored each frame. When the distance equals the distance
-    * specified in this call, the movement is stopped, and the `Body.onMoveComplete` 
+    * specified in this call, the movement is stopped, and the `Body.onMoveComplete`
     * signal is dispatched.
     *
     * Movement also stops if the Body collides or overlaps with any other Body.
-    * 
+    *
     * You can control if the velocity should be reset to zero on collision, by using
     * the property `Body.stopVelocityOnCollide`.
     *
     * Stop the movement at any time by calling `Body.stopMovement`.
     *
-    * Please note that due to browser timings you should allow for a variance in 
+    * Please note that due to browser timings you should allow for a variance in
     * when the distance will actually expire.
-    * 
+    *
     * Note: This method doesn't take into consideration any other forces acting
     * on the Body, such as Gravity, drag or maxVelocity, all of which may impact the
     * movement.
-    * 
+    *
     * @method Phaser.Physics.Arcade.Body#moveTo
     * @param  {integer} duration - The duration of the movement, in ms.
     * @param  {integer} distance - The distance, in pixels, the Body will move.
@@ -89193,7 +89485,7 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.halfHeight = Math.floor(this.height / 2);
         this.offset.setTo(offsetX, offsetY);
 
-        this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
+        this.updateCenter();
 
         this.isCircle = false;
         this.radius = 0;
@@ -89237,7 +89529,7 @@ Phaser.Physics.Arcade.Body.prototype = {
 
             this.offset.setTo(offsetX, offsetY);
 
-            this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
+            this.updateCenter();
         }
         else
         {
@@ -89274,16 +89566,15 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.rotation = this.sprite.angle;
         this.preRotation = this.rotation;
 
-        this._sx = this.sprite.scale.x;
-        this._sy = this.sprite.scale.y;
+        this.updateBounds();
 
-        this.center.setTo(this.position.x + this.halfWidth, this.position.y + this.halfHeight);
+        this.updateCenter();
 
     },
 
     /**
     * Returns the bounds of this physics body.
-    * 
+    *
     * Only used internally by the World collision methods.
     *
     * @method Phaser.Physics.Arcade.Body#getBounds
@@ -89336,7 +89627,7 @@ Phaser.Physics.Arcade.Body.prototype = {
         return this.blocked.down;
 
     },
-    
+
     /**
     * Returns true if the top of this Body is in contact with either the world bounds or a tile.
     *
@@ -89423,7 +89714,7 @@ Phaser.Physics.Arcade.Body.prototype = {
 
     /**
     * Destroys this Body.
-    * 
+    *
     * First it calls Group.removeFromHash if the Game Object this Body belongs to is part of a Group.
     * Then it nulls the Game Objects body reference, and nulls this Body.sprite reference.
     *
@@ -89649,8 +89940,8 @@ Phaser.Physics.Arcade.TilemapCollision.prototype = {
         }
 
         var mapData = tilemapLayer.getTiles(
-            sprite.body.position.x - sprite.body.tilePadding.x,
-            sprite.body.position.y - sprite.body.tilePadding.y,
+            sprite.body.position.x - sprite.body.tilePadding.x - tilemapLayer.getTileOffsetX(),
+            sprite.body.position.y - sprite.body.tilePadding.y - tilemapLayer.getTileOffsetY(),
             sprite.body.width + sprite.body.tilePadding.x,
             sprite.body.height + sprite.body.tilePadding.y,
             false, false);
@@ -89739,8 +90030,8 @@ Phaser.Physics.Arcade.TilemapCollision.prototype = {
             return false;
         }
         
-        var tilemapLayerOffsetX = (!tilemapLayer.fixedToCamera) ? tilemapLayer.position.x : 0;
-        var tilemapLayerOffsetY = (!tilemapLayer.fixedToCamera) ? tilemapLayer.position.y : 0;
+        var tilemapLayerOffsetX = tilemapLayer.getTileOffsetX();
+        var tilemapLayerOffsetY = tilemapLayer.getTileOffsetY();
 
         //  We re-check for collision in case body was separated in a previous step
         if (!tile.intersects((body.position.x - tilemapLayerOffsetX), (body.position.y - tilemapLayerOffsetY), (body.right - tilemapLayerOffsetX), (body.bottom - tilemapLayerOffsetY)))
@@ -89852,7 +90143,7 @@ Phaser.Physics.Arcade.TilemapCollision.prototype = {
     tileCheckX: function (body, tile, tilemapLayer) {
 
         var ox = 0;
-        var tilemapLayerOffsetX = (!tilemapLayer.fixedToCamera) ? tilemapLayer.position.x : 0;
+        var tilemapLayerOffsetX = tilemapLayer.getTileOffsetX();
 
         if (body.deltaX() < 0 && !body.blocked.left && tile.collideRight && body.checkCollision.left)
         {
@@ -89910,7 +90201,7 @@ Phaser.Physics.Arcade.TilemapCollision.prototype = {
     tileCheckY: function (body, tile, tilemapLayer) {
 
         var oy = 0;
-        var tilemapLayerOffsetY = (!tilemapLayer.fixedToCamera) ? tilemapLayer.position.y : 0;
+        var tilemapLayerOffsetY = tilemapLayer.getTileOffsetY();
 
         if (body.deltaY() < 0 && !body.blocked.up && tile.collideDown && body.checkCollision.up)
         {
@@ -93946,9 +94237,10 @@ Phaser.Physics.P2.Body.prototype = {
     *     data as the 2nd argument.
     * @param {string|object} object - The key of the object within the Physics data file that you wish to load the shape data from, 
     *     or if key is null pass the actual physics data object itself as this parameter.
+    * @param {number} [scale=1] - Optionally resize the loaded polygon.
     * @return {boolean} True on success, else false.
     */
-    loadPolygon: function (key, object) {
+    loadPolygon: function (key, object, scale) {
 
         if (key === null)
         {
@@ -93957,6 +94249,11 @@ Phaser.Physics.P2.Body.prototype = {
         else
         {
             var data = this.game.cache.getPhysicsData(key, object);
+        }
+        
+        if (typeof scale !== "number")
+        {
+            scale = 1;
         }
 
         //  We've multiple Convex shapes, they should be CCW automatically
@@ -93968,7 +94265,10 @@ Phaser.Physics.P2.Body.prototype = {
 
             for (var s = 0; s < data[i].shape.length; s += 2)
             {
-                vertices.push([ this.world.pxmi(data[i].shape[s]), this.world.pxmi(data[i].shape[s + 1]) ]);
+                vertices.push([
+                    this.world.pxmi(data[i].shape[s] * scale),
+                    this.world.pxmi(data[i].shape[s + 1] * scale)
+                ]);
             }
 
             var c = new p2.Convex({ vertices: vertices });
@@ -98180,10 +98480,16 @@ Phaser.TilemapLayer = function (game, tilemap, index, width, height) {
 
     /**
     * The current canvas top after scroll is applied.
-    * @propety {number} _scrollY
+    * @property {number} _scrollY
     * @private
     */
     this._scrollY = 0;
+
+    /**
+     * The position offset of the layer's tiles.
+     * @property {Phaser.Point}
+     */
+    this.tileOffset = new Phaser.Point(this.layer.offsetX || 0, this.layer.offsetY || 0);
 
     /**
     * Used for caching the tiles / array of tiles.
@@ -98259,8 +98565,8 @@ Phaser.TilemapLayer.prototype.postUpdate = function () {
         this.position.y = (this.game.camera.view.y + this.cameraOffset.y) / this.game.camera.scale.y;
     }
 
-    this._scrollX = this.game.camera.view.x * this.scrollFactorX / this.scale.x;
-    this._scrollY = this.game.camera.view.y * this.scrollFactorY / this.scale.y;
+    this._scrollX = (this.game.camera.view.x - this.tileOffset.x) * this.scrollFactorX / this.scale.x;
+    this._scrollY = (this.game.camera.view.y - this.tileOffset.y) * this.scrollFactorY / this.scale.y;
 
 };
 
@@ -98279,8 +98585,8 @@ Phaser.TilemapLayer.prototype._renderCanvas = function (renderSession) {
         this.position.y = (this.game.camera.view.y + this.cameraOffset.y) / this.game.camera.scale.y;
     }
 
-    this._scrollX = this.game.camera.view.x * this.scrollFactorX / this.scale.x;
-    this._scrollY = this.game.camera.view.y * this.scrollFactorY / this.scale.y;
+    this._scrollX = (this.game.camera.view.x - this.tileOffset.x) * this.scrollFactorX / this.scale.x;
+    this._scrollY = (this.game.camera.view.y - this.tileOffset.y) * this.scrollFactorY / this.scale.y;
 
     this.render();
 
@@ -98303,8 +98609,8 @@ Phaser.TilemapLayer.prototype._renderWebGL = function (renderSession) {
         this.position.y = (this.game.camera.view.y + this.cameraOffset.y) / this.game.camera.scale.y;
     }
     
-    this._scrollX = this.game.camera.view.x * this.scrollFactorX / this.scale.x;
-    this._scrollY = this.game.camera.view.y * this.scrollFactorY / this.scale.y;
+    this._scrollX = (this.game.camera.view.x - this.tileOffset.x) * this.scrollFactorX / this.scale.x;
+    this._scrollY = (this.game.camera.view.y - this.tileOffset.y) * this.scrollFactorY / this.scale.y;
 
     this.render();
 
@@ -98372,6 +98678,32 @@ Phaser.TilemapLayer.prototype.resize = function (width, height) {
 Phaser.TilemapLayer.prototype.resizeWorld = function () {
 
     this.game.world.setBounds(0, 0, this.layer.widthInPixels * this.scale.x, this.layer.heightInPixels * this.scale.y);
+
+};
+
+/**
+ * Get the X axis position offset of this layer's tiles.
+ *
+ * @method Phaser.TilemapLayer#getLayerOffsetX
+ * @public
+ * @return {number}
+ */
+Phaser.TilemapLayer.prototype.getTileOffsetX = function () {
+
+    return this.tileOffset.x || ((!this.fixedToCamera) ? this.position.x : 0);
+
+};
+
+/**
+ * Get the Y axis position offset of this layer's tiles.
+ *
+ * @method Phaser.TilemapLayer#getTileOffsetY
+ * @public
+ * @return {number}
+ */
+Phaser.TilemapLayer.prototype.getTileOffsetY = function () {
+
+    return this.tileOffset.y || ((!this.fixedToCamera) ? this.position.y : 0);
 
 };
 
@@ -99559,6 +99891,8 @@ Phaser.TilemapParser = {
                 widthInPixels: curl.width * json.tilewidth,
                 heightInPixels: curl.height * json.tileheight,
                 alpha: curl.opacity,
+                offsetX: curl.offsetx,
+                offsetY: curl.offsety,
                 visible: curl.visible,
                 properties: {},
                 indexes: [],
@@ -100640,7 +100974,7 @@ Phaser.Particles.Arcade.Emitter = function (game, x, y, maxParticles) {
     this.gravity = new Phaser.Point(0, 100);
 
     /**
-    * @property {any} particleClass - For emitting your own particle class types. They must extend Phaser.Particle.
+    * @property {function} particleClass - For emitting your own particle class types. They must extend Phaser.Particle.
     * @default
     */
     this.particleClass = Phaser.Particle;
@@ -100867,14 +101201,16 @@ Phaser.Particles.Arcade.Emitter.prototype.update = function () {
 * @param {number} [quantity] - The number of particles to generate. If not given it will use the value of Emitter.maxParticles. If the value is greater than Emitter.maxParticles it will use Emitter.maxParticles as the quantity.
 * @param {boolean} [collide=false] - If you want the particles to be able to collide with other Arcade Physics bodies then set this to true.
 * @param {boolean} [collideWorldBounds=false] - A particle can be set to collide against the World bounds automatically and rebound back into the World if this is set to true. Otherwise it will leave the World.
+* @param {object} [particleArguments=null] - Custom arguments to pass to your particle class
 * @return {Phaser.Particles.Arcade.Emitter} This Emitter instance.
 */
-Phaser.Particles.Arcade.Emitter.prototype.makeParticles = function (keys, frames, quantity, collide, collideWorldBounds) {
+Phaser.Particles.Arcade.Emitter.prototype.makeParticles = function (keys, frames, quantity, collide, collideWorldBounds, particleArguments) {
 
     if (frames === undefined) { frames = 0; }
     if (quantity === undefined) { quantity = this.maxParticles; }
     if (collide === undefined) { collide = false; }
     if (collideWorldBounds === undefined) { collideWorldBounds = false; }
+    if (particleArguments === undefined) { particleArguments = null; }
 
     var particle;
     var i = 0;
@@ -100899,7 +101235,7 @@ Phaser.Particles.Arcade.Emitter.prototype.makeParticles = function (keys, frames
             rndFrame = this.game.rnd.pick(frames);
         }
 
-        particle = new this.particleClass(this.game, 0, 0, rndKey, rndFrame);
+        particle = new this.particleClass(this.game, 0, 0, rndKey, rndFrame, particleArguments);
 
         this.game.physics.arcade.enable(particle, false);
 
@@ -100965,10 +101301,14 @@ Phaser.Particles.Arcade.Emitter.prototype.revive = function () {
 *
 * @method Phaser.Particles.Arcade.Emitter#explode
 * @param {number} [lifespan=0] - How long each particle lives once emitted in ms. 0 = forever.
-* @param {number} [quantity=0] - How many particles to launch.
+* @param {number} [quantity=this.maxParticles] - How many particles to launch.
 * @return {Phaser.Particles.Arcade.Emitter} This Emitter instance.
 */
 Phaser.Particles.Arcade.Emitter.prototype.explode = function (lifespan, quantity) {
+
+    if (quantity === undefined) {
+        quantity = this.maxParticles;
+    }
 
     this._flowTotal = 0;
 
@@ -101027,14 +101367,27 @@ Phaser.Particles.Arcade.Emitter.prototype.flow = function (lifespan, frequency, 
 };
 
 /**
-* Call this function to start emitting particles.
+* Start emitting particles.
+*
+* {@link #explode} and {@link #flow} are simpler methods.
+*
+* There are two patterns, based on the `explode` argument:
+*
+* - `start(true, lifespan=0, null, quantity)`
+* - `start(false, lifespan=0, frequency=250, quantity=0)`
+*
+* When `explode` is true or `forceQuantity` is true, `start` emits `quantity` particles immediately. You should pass a nonzero `quantity`.
+*
+* When `explode` is false and `forceQuantity` is false, `start` emits 1 particle every interval of `frequency` ms. If `quantity` is not zero, the emitter turns itself off after `quantity` particles have been released. If `quantity` is zero, the emitter keeps emitting particles as long as they are available. To emit more than 1 particle per flow interval, use {@link #flow} instead.
+*
+* `forceQuantity` seems equivalent to `explode` and can probably be avoided.
 *
 * @method Phaser.Particles.Arcade.Emitter#start
 * @param {boolean} [explode=true] - Whether the particles should all burst out at once (true) or at the frequency given (false).
 * @param {number} [lifespan=0] - How long each particle lives once emitted in ms. 0 = forever.
-* @param {number} [frequency=250] - Ignored if Explode is set to true. Frequency is how often to emit 1 particle. Value given in ms.
-* @param {number} [quantity=0] - How many particles to launch. 0 = "all of the particles" which will keep emitting until Emitter.maxParticles is reached.
-* @param {number} [forceQuantity=false] - If `true` and creating a particle flow, the quantity emitted will be forced to the be quantity given in this call. This can never exceed Emitter.maxParticles.
+* @param {number} [frequency=250] - Frequency is how often to emit 1 particle when `explode` is false. Value given in ms. Ignored if `explode` is set to true.
+* @param {number} [quantity=0] - How many particles to launch in total (not larger than {@link Phaser.Particles.Arcade.Emitter#maxParticles maxParticles}).
+* @param {number} [forceQuantity=false] - Equivalent to `explodes`.
 * @return {Phaser.Particles.Arcade.Emitter} This Emitter instance.
 */
 Phaser.Particles.Arcade.Emitter.prototype.start = function (explode, lifespan, frequency, quantity, forceQuantity) {
@@ -101760,7 +102113,7 @@ Phaser.Weapon = function (game, parent) {
 
     /**
      * Private var that holds the public `bulletClass` property.
-     * @type {object}
+     * @type {function}
      * @private
      */
     this._bulletClass = Phaser.Bullet;
@@ -102414,7 +102767,7 @@ Phaser.Weapon.prototype.fire = function (from, x, y, offsetX, offsetY) {
         if (this.trackRotation)
         {
             this._rotatedPoint.set(this.trackedSprite.world.x + this.trackOffset.x, this.trackedSprite.world.y + this.trackOffset.y);
-            this._rotatedPoint.rotate(this.trackedSprite.world.x, this.trackedSprite.world.y, this.trackedSprite.rotation);
+            this._rotatedPoint.rotate(this.trackedSprite.world.x, this.trackedSprite.world.y, this.trackedSprite.worldRotation);
 
             if (this.fireFrom.width > 1)
             {
@@ -102811,11 +103164,13 @@ Phaser.Weapon.prototype.debug = function (x, y, debugBodies) {
 };
 
 /**
-* The Class of the bullets that are launched by this Weapon. Defaults `Phaser.Bullet`, but can be
+* The Class of the bullets that are launched by this Weapon. Defaults to {@link Phaser.Bullet}, but can be
 * overridden before calling `createBullets` and set to your own class type.
 *
+* It should be a constructor function accepting `(game, x, y, key, frame)`.
+*
 * @name Phaser.Weapon#bulletClass
-* @property {Object} bulletClass
+* @property {function} bulletClass
 */
 Object.defineProperty(Phaser.Weapon.prototype, "bulletClass", {
 
@@ -102829,7 +103184,7 @@ Object.defineProperty(Phaser.Weapon.prototype, "bulletClass", {
 
         this._bulletClass = classType;
 
-        //prevent crash if weapon's bullets have not yet been initialized
+        // `this.bullets` exists only after createBullets()
         if (this.bullets) {
             this.bullets.classType = this._bulletClass;
         }
@@ -103589,7 +103944,7 @@ Phaser.Video.prototype = {
      * This method is typically called by the Phaser.Loader and Phaser.Cache for you, but is exposed publicly for convenience.
      *
      * @method Phaser.Video#createVideoFromBlob
-     * @param {Blob} blob - The Blob containing the video data: `Blob([new Uint8Array(data)])`
+     * @param {Blob} blob - The Blob containing the video data.
      * @return {Phaser.Video} This Video object for method chaining.
      */
     createVideoFromBlob: function (blob) {

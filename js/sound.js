@@ -27,7 +27,7 @@ var dataAverage = [42, 42, 42, 42];   // an array recording data for the last 4 
 var waveImgs = []; // array of wave images with different stroke thicknesses
 var waveHit = false;
 
-musicEnabled = false; //disables sound and sound effects for testing purposes
+musicEnabled = true; //disables sound and sound effects for testing purposes
 backgroundColoringEnabled = true;
 enemyColoringEnabled = true; //disable this for performance improvement
 

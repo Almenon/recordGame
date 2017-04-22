@@ -5,7 +5,7 @@ repository for Javascript/Phaser based music game, inspired by [superhexagon](ht
 
 > https://almenon.github.io/recordGame/
 
-> Controls: left/right arrow keys.  Doesn't work in IE / Edge
+> Doesn't work in IE / Edge
 
 **Development**
 

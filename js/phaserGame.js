@@ -104,7 +104,7 @@ function update() { //fps is 60, so should complete within 16 ms
 
     despawnOldestEnemyGroup();
     collisionCheck();
-    playerMovement2();
+    playerMovement3();
 
 }
 
@@ -155,6 +155,13 @@ function playerMovement2(){
     if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) player.body.angularVelocity =  -300;
     else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) player.body.angularVelocity =  300;
     else player.body.angularVelocity = 0;
+}
+
+/**
+ * @summary movement based on mouse pointer.  Very easy to use.  Only moves mouse when pointer is in canvas.
+ */
+function playerMovement3(){
+    player.rotation = game.physics.arcade.angleToPointer(player);
 }
 
 //todo: make fullscreen button

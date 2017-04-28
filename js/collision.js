@@ -2,12 +2,24 @@
 /// COLLISION CODE (called by Phaser update)
 //////////////////////////////////////////////////////////////
 
-var l33tHax = false; //allows you to survive death
+var l33tHax = true; //allows you to survive death
 
 /**
  * @summary removes oldest enemy group if it has gone into record
  */
 function despawnOldestEnemyGroup(){
+
+    //  if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
+    //     allEnemies[oldestEnemy].forEach((aEnemy)=>{
+    //         if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < despawnDistance){
+    //             aEnemy.kill();
+    //         }
+    //         else return;
+    //     });
+    //     if(++oldestEnemy > MAXENEMIES-1) oldestEnemy = 0;
+    // }   
+
+
     if(allEnemies[oldestEnemy].children.length > 0){ //make sure an enemy actually exists first
         var aEnemy = allEnemies[oldestEnemy].children[0]; //get an arbitrary enemy from the oldest surviving group (first to die)
         if(Phaser.Math.distance(aEnemy.x,aEnemy.y,game.world.centerX,game.world.centerY) < despawnDistance){

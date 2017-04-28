@@ -106,6 +106,28 @@ function update() { //fps is 60, so should complete within 16 ms
     collisionCheck();
     playerMovement3();
 
+    setAllEnemies((enemy)=>{
+        enemy.x-=(.1+.1*enemy.rad)*Math.cos(enemy.rad);
+        enemy.y-=(.1+.1*enemy.rad)*Math.sin(enemy.rad);
+    })
+
+}
+
+function setAllEnemies(func){
+	if(currentEnemyGroup < oldestEnemy){
+		//in this case, alive enemies wrap around the allEnemies array
+		for(i=oldestEnemy; i<MAXENEMIES-1;i++){
+			allEnemies[i].forEach(func)
+		}
+		for(i=0; i<=currentEnemyGroup;i++){
+			allEnemies[i].forEach(func)
+		}
+	}
+	else{
+		for(i=oldestEnemy; i<currentEnemyGroup;i++){
+			allEnemies[i].forEach(func)
+		}
+	}
 }
 
 function render() {
@@ -123,21 +145,8 @@ function render() {
 }
 
 ///////////////////////////////////////
-// MISC
+// MOVEMENT
 ///////////////////////////////////////
-
-/**
- * called by sound.js when music loading is complete
- */
-function startEnemySpawning(){
-
-    //set up timer for scoring upon game end
-    gameTime = game.time.create();
-    gameTime.start();
-
-    //enemyChallengeTest3();
-    setUpEnemySpawning();
-}
 
 /**
  * @summary movement with acceleration up to 450.
@@ -163,6 +172,10 @@ function playerMovement2(){
 function playerMovement3(){
     player.rotation = game.physics.arcade.angleToPointer(player);
 }
+
+///////////////////////////////////////
+// MISC
+///////////////////////////////////////
 
 //todo: make fullscreen button
 function fullScreenSwitch() {

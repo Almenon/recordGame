@@ -1,3 +1,4 @@
+/*global allEnemies, enemyCreationDistance, Phaser, game*/ //comment for eslint
 //VARIABLES
 var NUMBERENEMIES = .01; //.01 gives us number of objects that compose shape.  more for smoother shape
 var MAXENEMIES = 127; //lets just assume there will be max of 128 enemy groups on screen.  This assumption is dangerous and will probably need to be updated

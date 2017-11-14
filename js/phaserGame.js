@@ -2,6 +2,8 @@
 /// PHASER FUNCS - PRELOAD, CREATE, UPDATE, RENDER
 /// see enemyCode.js for enemyCreation and collision checking
 //////////////////////////////////////////////////////////////
+/*global Phaser*/ //comment for eslint
+
 var game = new Phaser.Game({
     width: window.innerWidth,
     height: window.innerHeight,

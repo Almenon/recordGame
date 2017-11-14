@@ -1,6 +1,7 @@
 //////////////////////////////////////////////////////////////
 /// COLLISION CODE (called by Phaser update)
 //////////////////////////////////////////////////////////////
+/*global allEnemies, Phaser, oldestEnemy, player, game, despawnDistance, MAXENEMIES, gameTime*/ //comment for eslint
 
 var l33tHax = false; //allows you to survive death
 

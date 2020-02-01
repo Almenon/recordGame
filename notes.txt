@@ -1,3 +1,25 @@
 http://phaser.io/docs/2.6.2/index
 
 examples: https://phaser.io/examples
+
+https://phaser.io/examples/v2/audio/ym
+https://phaser.io/examples/v2/audio/protracker
+
+
+http://squeegy.github.io/MandalaTron/?bpm=54&vid=KbpuQaSfnfI&vidt=0.5&fullscreen=1
+^ sync music example (but is out of date)
+
+http://stackoverflow.com/questions/20598147/perfect-synchronization-with-web-audio-api
+http://freemusicarchive.org/genre/Electronic/
+
+
+
+
+
+DIARY: 
+today I will be adding multiple enemies in.  
+  from i = 0 to numEnemies:
+	createEnemy(i) # i degrees
+This can be used to create arcs, half circles, full circles, you name it.
+
+so... it worked... but the tweens cause some VERY strange behavior: the half-circle got smaller, and then reversed itself!
